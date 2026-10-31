@@ -10,6 +10,7 @@ export { exampleProblems } from './_examples';
 // --- Writer B (arrays-hashing, two-pointers, sliding-window, stack, binary-search,
 //     linked-list, intervals, greedy, math) ---
 export { bArraysHashingProblems } from './b-arrays-hashing';
+export { bTwoPointerProblems } from './b-two-pointers';
 
 // --- Writer C (trees, tries, heap, backtracking, graphs, topo-sort, shortest-paths,
 //     dp-1d, dp-2d) ---

@@ -1,0 +1,12 @@
+node_modules/
+dist/
+build/
+public/pyodide/
+test-results/
+playwright-report/
+evidence/
+*.log
+.DS_Store
+.vite/
+__pycache__/
+*.pyc

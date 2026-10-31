@@ -1,0 +1,30 @@
+import type { Topic } from './schema';
+
+// Order is the learning path: syntax first, standard library second, patterns last.
+export const topics: Topic[] = [
+  { id: 'types', title: 'Types, truthiness & identity', section: 'syntax', summary: 'What is falsy, None checks, == versus is, and the built-in types you will use every day.' },
+  { id: 'numbers', title: 'Numbers & integer division', section: 'syntax', summary: 'Floor division and modulo with negatives, divmod, unbounded ints, infinity and float pitfalls.' },
+  { id: 'strings', title: 'Strings', section: 'syntax', summary: 'Immutability, slicing, split/join, ord/chr, character classes and building strings efficiently.' },
+  { id: 'lists', title: 'Lists, slicing & grids', section: 'syntax', summary: 'Indexing, slices as copies, aliasing, in-place methods that return None, and 2-D grids.' },
+  { id: 'tuples', title: 'Tuples & unpacking', section: 'syntax', summary: 'Immutable records, hashability, star-unpacking, swaps and returning several values.' },
+  { id: 'dicts-sets', title: 'Dicts & sets', section: 'syntax', summary: 'Lookups with get/setdefault, iteration order, set algebra and which keys are hashable.' },
+  { id: 'loops', title: 'Loops & iteration tools', section: 'syntax', summary: 'range, enumerate, zip, reversed and the itertools helpers interviewers expect.' },
+  { id: 'comprehensions', title: 'Comprehensions & generators', section: 'syntax', summary: 'List/dict/set comprehensions, generator expressions, laziness and iterator exhaustion.' },
+  { id: 'functions', title: 'Functions & scope', section: 'syntax', summary: 'Defaults, the mutable-default trap, *args/**kwargs, type hints, closures and nonlocal.' },
+  { id: 'classes', title: 'Classes, ListNode & TreeNode', section: 'syntax', summary: 'Small classes, __repr__, ordering for heaps, dataclasses and the node classes judges hand you.' },
+  { id: 'sorting', title: 'Sorting', section: 'library', summary: 'sorted versus .sort, key functions, stability, multi-key orders and cmp_to_key.' },
+  { id: 'collections', title: 'Counter & defaultdict', section: 'library', summary: 'Counting and grouping without boilerplate; Counter arithmetic and most_common.' },
+  { id: 'deque', title: 'deque & queues', section: 'library', summary: 'O(1) operations at both ends: BFS queues, sliding windows and bounded history.' },
+  { id: 'heapq', title: 'heapq & priority queues', section: 'library', summary: 'Min-heaps, top-k, tuple priorities with tie-breakers and max-heaps by negation.' },
+  { id: 'bisect', title: 'bisect & sorted lists', section: 'library', summary: 'Binary search on sorted lists: insertion points, counting in a range, and the insertion cost.' },
+  { id: 'memo', title: 'Recursion & memoization', section: 'library', summary: 'functools.cache, cache caveats, recursion limits and converting to iterative DP.' },
+  { id: 'math-bits', title: 'Math & bit manipulation', section: 'library', summary: 'gcd/lcm/comb/isqrt, modular pow, bit tricks and how negative numbers behave.' },
+  { id: 'two-pointers', title: 'Two pointers & sliding window', section: 'patterns', summary: 'Converging pointers on sorted data and variable-size windows with a running state.' },
+  { id: 'prefix-sums', title: 'Prefix sums & hashing', section: 'patterns', summary: 'Range sums in O(1) and counting subarrays with a running-sum dictionary.' },
+  { id: 'binary-search', title: 'Binary search on answers', section: 'patterns', summary: 'One loop shape for "first index where a condition becomes true".' },
+  { id: 'stacks', title: 'Stacks & monotonic stacks', section: 'patterns', summary: 'Matching brackets and "next greater element" in one pass.' },
+  { id: 'graphs', title: 'BFS, DFS, trees & grids', section: 'patterns', summary: 'Grid neighbours, BFS levels, iterative DFS, tree recursion and topological order.' },
+  { id: 'backtracking-dp', title: 'Backtracking & dynamic programming', section: 'patterns', summary: 'Choose/explore/un-choose templates and bottom-up tables.' },
+  { id: 'union-find', title: 'Union-find', section: 'patterns', summary: 'Disjoint sets with path compression and union by size.' },
+  { id: 'portability', title: 'Python 2 relics & version portability', section: 'patterns', summary: 'Spot Python 2 code in old solutions and know which features need 3.10, 3.12 or 3.14.' },
+];

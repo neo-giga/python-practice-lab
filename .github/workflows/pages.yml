@@ -1,0 +1,63 @@
+name: Deploy to GitHub Pages
+
+# Publishes only the current tip of `dev`. Enable with Settings -> Pages -> Source: GitHub Actions.
+on:
+  push:
+    branches: [dev]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    if: github.ref == 'refs/heads/dev'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - run: npm run typecheck
+      - run: npm test
+      - run: npm run build
+      - run: npx playwright install --with-deps chromium
+      - name: E2E on the exact artifact to be published (Chromium, 3 viewports)
+        run: npx playwright test --project=phone-375 --project=tablet-768 --project=desktop-1440
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: dist
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Refuse to publish a stale build
+        id: fresh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          head=$(gh api "repos/${{ github.repository }}/commits/dev" --jq .sha)
+          if [ "$head" = "${{ github.sha }}" ]; then
+            echo "ok=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "::warning::dev moved from ${{ github.sha }} to $head; skipping this deployment (the newer run publishes)."
+            echo "ok=false" >> "$GITHUB_OUTPUT"
+          fi
+      - id: deployment
+        if: steps.fresh.outputs.ok == 'true'
+        uses: actions/deploy-pages@v4

@@ -6,6 +6,7 @@ import { Compartment, EditorState, Prec } from '@codemirror/state';
 import { indentWithTab, indentLess, indentMore } from '@codemirror/commands';
 import { python } from '@codemirror/lang-python';
 import { editorTheme } from './editorTheme';
+import { Icon } from './Icon';
 
 interface Props {
   value: string;
@@ -102,8 +103,12 @@ export function CodeEditor({ value, onChange, onRun, onSubmit, readOnly = false,
     <div className="editor" data-testid={testId} data-readonly={readOnly || undefined}>
       <div ref={host} className="editor-host" />
       <div className="keybar" role="toolbar" aria-label="Insert characters">
-        <button type="button" onClick={() => run(indentMore)} disabled={readOnly} aria-label="Indent">⇥</button>
-        <button type="button" onClick={() => run(indentLess)} disabled={readOnly} aria-label="Dedent">⇤</button>
+        <button type="button" onClick={() => run(indentMore)} disabled={readOnly} aria-label="Indent">
+          <Icon name="indent" size={16} />
+        </button>
+        <button type="button" onClick={() => run(indentLess)} disabled={readOnly} aria-label="Dedent">
+          <Icon name="dedent" size={16} />
+        </button>
         {[':', '(', ')', '[', ']', '{', '}', '"', '_', '='].map((ch) => (
           <button type="button" key={ch} onClick={() => insert(ch)} disabled={readOnly} aria-label={`Insert ${ch}`}>
             {ch}

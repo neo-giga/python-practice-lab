@@ -199,6 +199,38 @@ test.describe('Practice journey', () => {
   });
 });
 
+test.describe('Problem workspace runtime states', () => {
+  test('Stop during Submit is not a failed attempt; tab switches never cancel a run; edits mark results stale', async ({ page }, info) => {
+    const w = watchErrors(page);
+    await page.goto('#/p/two-sum-indexes');
+    await openCode(page, info);
+    await setEditor(page, 'def pair_indexes(nums, target):\n    while True:\n        pass');
+    await page.getByTestId('submit').click();
+    await expect(page.getByTestId('stop')).toBeVisible({ timeout: 90_000 });
+    if (narrowWs(info)) {
+      // Switching tabs keeps the run going.
+      await page.getByTestId('tab-problem').click();
+      await page.getByTestId('tab-result').click();
+      await expect(page.getByTestId('stop')).toBeVisible();
+    }
+    await page.getByTestId('stop').click();
+    await expect(page.getByTestId('run-summary')).toHaveAttribute('data-status', 'stopped');
+    expect(await page.evaluate(() => localStorage.getItem('pil:v1:attempts'))).toBeNull();
+    expect(await page.evaluate(() => localStorage.getItem('pil:v1:progress'))).toBeNull();
+    await openCode(page, info);
+    await setEditor(page, TWO_SUM_WRONG);
+    await page.getByTestId('run-examples').click();
+    await expect(page.getByTestId('run-summary')).toHaveAttribute('data-mode', 'examples', { timeout: 90_000 });
+    await openCode(page, info);
+    await page.locator('[data-testid=editor] .cm-content').click();
+    await page.keyboard.press('ControlOrMeta+End');
+    await page.keyboard.insertText('\n# edited');
+    if (narrowWs(info)) await page.getByTestId('tab-result').click();
+    await expect(page.getByText('This result is for an earlier version of your code')).toBeVisible();
+    expect(w.errors).toEqual([]);
+  });
+});
+
 test.describe('Problem grading and persistence @runtime', () => {
   test('Run examples, Submit, reload: solve and draft survive (every browser)', async ({ page }, info) => {
     const w = watchErrors(page);

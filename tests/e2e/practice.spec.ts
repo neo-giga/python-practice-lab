@@ -21,7 +21,7 @@ test.describe('Fluency drills (real Pyodide grading)', () => {
     const summary = page.getByTestId('run-summary');
     await expect(summary).toContainText(/of 5 cases passed/, { timeout: 90_000 });
     await expect(summary).toHaveAttribute('data-status', 'ok');
-    await expect(page.getByTestId('case').filter({ hasText: '✗ Fail' }).first()).toBeVisible();
+    await expect(page.getByTestId('case').filter({ hasText: 'Fail' }).first()).toBeVisible();
     await expect(page.getByTestId('case').first()).toContainText('[None, 0, 5]');
     await expect(page.getByTestId('solve-state')).toHaveText(/Not solved/);
     await expect(page.getByTestId('runtime-status')).toContainText(/Python 3\.14\.\d+ · Pyodide 314\.0\.7/);
@@ -38,7 +38,7 @@ test.describe('Fluency drills (real Pyodide grading)', () => {
     await setEditor(page, SOLUTION);
     await page.getByTestId('run').click();
     await expect(summary).toContainText('All 5 cases passed');
-    await expect(page.getByTestId('case').filter({ hasText: '✓ Pass' })).toHaveCount(5);
+    await expect(page.getByTestId('case').filter({ hasText: 'Pass' })).toHaveCount(5);
     await expect(page.getByTestId('solve-state')).toHaveText('Solved');
     await expect(page.getByTestId('progress-chip')).toContainText('1/');
     await expect(page.getByTestId('next-drill')).toBeVisible();

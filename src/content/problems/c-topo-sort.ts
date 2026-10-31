@@ -5,6 +5,7 @@ export const cTopoSortProblems: CodingProblem[] = [
   {
     id: "stitch-scan-order",
     version: 1,
+    similarTo: { lc: 444, url: "https://leetcode.com/problems/sequence-reconstruction/" },
     title: "Stitch together scan strips",
     pattern: "topo-sort",
     subPatterns: ["Kahn","precedence reconstruction"],

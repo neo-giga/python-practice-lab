@@ -5,6 +5,7 @@ export const cDp2dProblems: CodingProblem[] = [
   {
     id: "corner-balance-table",
     version: 1,
+    similarTo: { lc: 304, url: "https://leetcode.com/problems/range-sum-query-2d-immutable/" },
     title: "Build a corner balance table",
     pattern: "dp-2d",
     subPatterns: ["table recurrence","2-D prefix sums"],
@@ -121,6 +122,7 @@ export const cDp2dProblems: CodingProblem[] = [
   {
     id: "branching-echo-rows",
     version: 1,
+    similarTo: { lc: 118, url: "https://leetcode.com/problems/pascals-triangle/" },
     title: "Record branching echoes",
     pattern: "dp-2d",
     subPatterns: ["row-by-row DP"],
@@ -236,6 +238,7 @@ export const cDp2dProblems: CodingProblem[] = [
   {
     id: "shared-milestone-chain",
     version: 1,
+    similarTo: { lc: 1143, url: "https://leetcode.com/problems/longest-common-subsequence/" },
     title: "Align shared milestone logs",
     pattern: "dp-2d",
     subPatterns: ["two-sequence DP"],
@@ -284,7 +287,7 @@ export const cDp2dProblems: CodingProblem[] = [
     idiomNote: "`enumerate(b, 1)` aligns sequence items with a padded DP row. Allocate a fresh current row for every item of a so diagonal reads still refer to the previous iteration.",
     wrong: [
       py`
-        # Computes a common contiguous stretch instead of a subsequence.
+        # Returns only the common suffix ending at both final positions.
         def shared_milestones(a, b):
             previous = [0] * (len(b) + 1)
             for x in a:
@@ -302,6 +305,18 @@ export const cDp2dProblems: CodingProblem[] = [
         from collections import Counter
         def shared_milestones(a, b):
             return sum((Counter(a) & Counter(b)).values())
+      `,
+      py`
+        # Reads the overwritten left cell instead of the previous row's diagonal.
+        def shared_milestones(a, b):
+            dp = [0] * (len(b) + 1)
+            for x in a:
+                for j, y in enumerate(b, 1):
+                    if x == y:
+                        dp[j] = dp[j - 1] + 1
+                    else:
+                        dp[j] = max(dp[j], dp[j - 1])
+            return dp[-1]
       `
     ],
     grading: {
@@ -342,6 +357,11 @@ export const cDp2dProblems: CodingProblem[] = [
         args: "[7] * 300, [7] * 250",
         expected: "250",
         label: "Repeated visits require 250 distinct matches"
+      },
+      {
+        args: "[4], [4, 4]",
+        expected: "1",
+        label: "One visit cannot match two visits in the other log"
       }
     ],
     recipeIds: ["dp-table"],
@@ -409,6 +429,17 @@ export const cDp2dProblems: CodingProblem[] = [
                 for room in range(capacity, weight, -1):
                     dp[room] = max(dp[room], dp[room - weight] + value)
             return dp[capacity]
+      `,
+      py`
+        # Greedily takes the best value/weight ratio, missing better combinations.
+        def best_cargo(weights, values, capacity):
+            packages = sorted(zip(weights, values), key=lambda item: item[1] / item[0], reverse=True)
+            total = 0
+            for weight, value in packages:
+                if value > 0 and weight <= capacity:
+                    capacity -= weight
+                    total += value
+            return total
       `
     ],
     grading: {
@@ -449,6 +480,11 @@ export const cDp2dProblems: CodingProblem[] = [
         args: "[2] * 100, [3] * 100, 100",
         expected: "150",
         label: "Choose 50 of 100 identical packages"
+      },
+      {
+        args: "[6, 5, 5], [12, 9, 9], 10",
+        expected: "18",
+        label: "Two lower-ratio packages beat the highest-ratio package"
       }
     ],
     recipeIds: ["dp-table"],

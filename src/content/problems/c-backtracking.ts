@@ -5,6 +5,7 @@ export const cBacktrackingProblems: CodingProblem[] = [
   {
     id: "badge-team-choices",
     version: 1,
+    similarTo: { lc: 77, url: "https://leetcode.com/problems/combinations/" },
     title: "Choose badges for a small team",
     pattern: "backtracking",
     subPatterns: ["combinations"],
@@ -130,6 +131,7 @@ export const cBacktrackingProblems: CodingProblem[] = [
   {
     id: "quiet-light-badges",
     version: 1,
+    similarTo: { lc: 3211, url: "https://leetcode.com/problems/generate-binary-strings-without-adjacent-zeros/" },
     title: "Design quiet light badges",
     pattern: "backtracking",
     subPatterns: ["pruning"],
@@ -206,7 +208,7 @@ export const cBacktrackingProblems: CodingProblem[] = [
             def visit():
                 if len(path) == n:
                     if path:
-                    out.append(''.join(path))
+                        out.append(''.join(path))
                     return
                 path.append('0')
                 visit()
@@ -261,6 +263,7 @@ export const cBacktrackingProblems: CodingProblem[] = [
   {
     id: "exact-spare-kits",
     version: 1,
+    similarTo: { lc: 40, url: "https://leetcode.com/problems/combination-sum-ii/" },
     title: "Pack exact spare kits",
     pattern: "backtracking",
     subPatterns: ["combinations","duplicate pruning"],
@@ -405,6 +408,7 @@ export const cBacktrackingProblems: CodingProblem[] = [
   {
     id: "mirror-label-cuts",
     version: 1,
+    similarTo: { lc: 131, url: "https://leetcode.com/problems/palindrome-partitioning/" },
     title: "Cut a label into mirror pieces",
     pattern: "backtracking",
     subPatterns: ["partitions"],

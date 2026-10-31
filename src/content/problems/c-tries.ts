@@ -5,6 +5,7 @@ export const cTriesProblems: CodingProblem[] = [
   {
     id: "directory-prefix-counts",
     version: 1,
+    similarTo: { lc: 1804, url: "https://leetcode.com/problems/implement-trie-ii-prefix-tree/" },
     title: "Count names under each prefix",
     pattern: "tries",
     subPatterns: ["prefix tree","prefix counts"],
@@ -148,6 +149,7 @@ export const cTriesProblems: CodingProblem[] = [
   {
     id: "wildcard-label-queries",
     version: 1,
+    similarTo: { lc: 211, url: "https://leetcode.com/problems/design-add-and-search-words-data-structure/" },
     title: "Look up partly smudged labels",
     pattern: "tries",
     subPatterns: ["prefix tree","wildcard search"],

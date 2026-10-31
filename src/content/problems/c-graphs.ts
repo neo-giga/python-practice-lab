@@ -5,13 +5,14 @@ export const cGraphsProblems: CodingProblem[] = [
   {
     id: "connected-locker-list",
     version: 1,
+    similarTo: { lc: 1971, url: "https://leetcode.com/problems/find-if-path-exists-in-graph/" },
     title: "Find the connected lockers",
     pattern: "graphs",
     subPatterns: ["adjacency lists"],
     difficulty: "easy",
     priority: 1,
     estMinutes: 18,
-    statement: "Lockers numbered `0` through `n - 1` are connected by two-way service passages in `links`. Starting at `start`, return the IDs of every reachable locker, including the starting locker, in ascending order. A passage may be listed more than once, and a locker may have a passage to itself; neither should duplicate the result.",
+    statement: "Lockers numbered `0` through `n - 1` are connected by two-way service passages in `links`. Starting at `start`, return the IDs of every reachable locker, including the starting locker, in ascending order. A passage may be listed more than once, and a locker may have a passage to itself; neither should duplicate the result.\n\nChains can be 3,000 lockers deep; Python's default recursion limit is 1,000, so use an explicit stack or queue.",
     examples: [
       {
         input: "6, [[4, 1], [1, 3], [0, 2]], 3",
@@ -128,13 +129,14 @@ export const cGraphsProblems: CodingProblem[] = [
   {
     id: "fabric-patch-ink",
     version: 1,
+    similarTo: { lc: 733, url: "https://leetcode.com/problems/flood-fill/" },
     title: "Re-ink one fabric patch",
     pattern: "graphs",
     subPatterns: ["grid DFS"],
     difficulty: "easy",
     priority: 1,
     estMinutes: 18,
-    statement: "A rectangular fabric swatch is stored as a matrix of integer ink codes. Starting at `(row, col)`, replace its entire connected patch with `ink`. Two cells belong to the same patch if they share an edge and have the starting cell's original code. Diagonal contact does not connect patches. Return the whole resulting matrix; editing the input is allowed. Existing cells of the replacement ink do not extend the original patch.",
+    statement: "A rectangular fabric swatch is stored as a matrix of integer ink codes. Starting at `(row, col)`, replace its entire connected patch with `ink`. Two cells belong to the same patch if they share an edge and have the starting cell's original code. Diagonal contact does not connect patches. Return the whole resulting matrix; editing the input is allowed. Existing cells of the replacement ink do not extend the original patch.\n\nA depth-first traversal can reach 2,500 cells deep; Python's default recursion limit is 1,000, so use an explicit stack or queue.",
     examples: [
       {
         input: "[[2, 2, 9], [2, 9, 2]], 0, 0, -1",
@@ -177,7 +179,7 @@ export const cGraphsProblems: CodingProblem[] = [
     },
     explanation: "Save the starting code and visit only edge-neighbors with that code. Recolor a cell when it is scheduled, which doubles as a visited mark.\n\nIf the old code equals the new ink, return immediately: otherwise recoloring would not mark progress and adjacent cells could schedule each other forever. A copy per row keeps the reference nonmutating.",
     hints: ["Only cells reachable through the original ink code should change.","Flood-fill with four neighbors and recolor on discovery.","Return early if old == ink; otherwise recolor the start, stack it, and schedule original-colored neighbors once."],
-    idiomNote: "`[line[:] for line in grid]` copies each row. `grid[:]` alone shares the inner lists. Store coordinates as tuples and use an explicit stack for large patches.",
+    idiomNote: "`[line[:] for line in grid]` copies each row. `grid[:]` alone shares the inner lists. Store coordinates as tuples and use an explicit stack for large patches to avoid Python's default recursion limit of 1,000.",
     wrong: [
       py`
         # Incorrectly allows diagonal contact.
@@ -255,13 +257,14 @@ export const cGraphsProblems: CodingProblem[] = [
   {
     id: "two-radio-channels",
     version: 1,
+    similarTo: { lc: 886, url: "https://leetcode.com/problems/possible-bipartition/" },
     title: "Share two radio channels",
     pattern: "graphs",
     subPatterns: ["bipartite colouring"],
     difficulty: "medium",
     priority: 1,
     estMinutes: 30,
-    statement: "There are `n` field radios. Each pair in `conflicts` says those radios must use different channels. Decide whether all radios can be assigned one of exactly two available channels without violating any pair. A channel may go unused. Return a boolean. Repeated pairs add no new rule; a self-conflict makes the assignment impossible. Disconnected groups must all be checked.",
+    statement: "There are `n` field radios. Each pair in `conflicts` says those radios must use different channels. Decide whether all radios can be assigned one of exactly two available channels without violating any pair. A channel may go unused. Return a boolean. Repeated pairs add no new rule; a self-conflict makes the assignment impossible. Disconnected groups must all be checked.\n\nChains can be 3,000 radios deep; Python's default recursion limit is 1,000, so use an explicit stack or queue.",
     examples: [
       {
         input: "5, [[0, 2], [2, 4], [4, 1], [1, 0]]",
@@ -311,31 +314,30 @@ export const cGraphsProblems: CodingProblem[] = [
     },
     explanation: "Choose an arbitrary channel for each unvisited component, then force each neighbor to the opposite channel. An edge joining equal colors contradicts the required assignment.\n\nIf traversal finishes without such an edge, the constructed coloring satisfies every pair. Restarting at every uncolored radio is necessary because a disconnected component can contain an odd cycle.",
     hints: ["Once one radio has a channel, what does that force on each neighbor?","Breadth-first color each connected component using 0 and 1.","Initialize colors to -1; discover neighbors with 1 - color[u], and reject any already-colored neighbor equal to color[u]."],
-    idiomNote: "Use a sentinel such as -1 for uncolored: channel 0 is falsy but already assigned. `deque.popleft()` gives constant-time queue removal.",
+    idiomNote: "Use a sentinel such as -1 for uncolored: channel 0 is falsy but already assigned. `deque.popleft()` gives constant-time queue removal. An explicit queue or stack avoids Python's default recursion limit of 1,000 on long chains.",
     wrong: [
       py`
         # Checks only the component containing radio zero.
         from collections import deque
 
         def two_channels(n, conflicts):
+            if n == 0:
+                return True
             adj = [[] for _ in range(n)]
             for a, b in conflicts:
                 adj[a].append(b)
                 adj[b].append(a)
             color = [-1] * n
-            for start in range(min(n, 1)):
-                if color[start] != -1:
-                    continue
-                color[start] = 0
-                queue = deque([start])
-                while queue:
-                    u = queue.popleft()
-                    for v in adj[u]:
-                        if color[v] == -1:
-                            color[v] = 1 - color[u]
-                            queue.append(v)
-                        elif color[v] == color[u]:
-                            return False
+            color[0] = 0
+            queue = deque([0])
+            while queue:
+                u = queue.popleft()
+                for v in adj[u]:
+                    if color[v] == -1:
+                        color[v] = 1 - color[u]
+                        queue.append(v)
+                    elif color[v] == color[u]:
+                        return False
             return True
       `,
       py`
@@ -410,6 +412,7 @@ export const cGraphsProblems: CodingProblem[] = [
   {
     id: "nearest-beacon-map",
     version: 1,
+    similarTo: { lc: 542, url: "https://leetcode.com/problems/01-matrix/" },
     title: "Map the nearest beacon",
     pattern: "graphs",
     subPatterns: ["multi-source BFS"],

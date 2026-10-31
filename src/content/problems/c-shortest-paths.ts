@@ -5,6 +5,7 @@ export const cShortestPathsProblems: CodingProblem[] = [
   {
     id: "relay-arrival-delays",
     version: 1,
+    similarTo: { lc: 743, url: "https://leetcode.com/problems/network-delay-time/" },
     title: "Measure relay arrival delays",
     pattern: "shortest-paths",
     subPatterns: ["Dijkstra"],
@@ -152,6 +153,7 @@ export const cShortestPathsProblems: CodingProblem[] = [
   {
     id: "fewest-toll-gates",
     version: 1,
+    similarTo: { lc: 2290, url: "https://leetcode.com/problems/minimum-obstacle-removal-to-reach-corner/" },
     title: "Cross the fewest toll gates",
     pattern: "shortest-paths",
     subPatterns: ["0-1 BFS"],

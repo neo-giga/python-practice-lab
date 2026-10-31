@@ -5,6 +5,7 @@ export const cDp1dProblems: CodingProblem[] = [
   {
     id: "steady-reading-run",
     version: 1,
+    similarTo: { lc: 674, url: "https://leetcode.com/problems/longest-continuous-increasing-subsequence/" },
     title: "Find the longest steady stretch",
     pattern: "dp-1d",
     subPatterns: ["rolling state"],
@@ -116,6 +117,7 @@ export const cDp1dProblems: CodingProblem[] = [
   {
     id: "fewest-screen-panels",
     version: 1,
+    similarTo: { lc: 322, url: "https://leetcode.com/problems/coin-change/" },
     title: "Build a screen with fewest panels",
     pattern: "dp-1d",
     subPatterns: ["unbounded choices"],

@@ -118,6 +118,7 @@ export const cTreesProblems: CodingProblem[] = [
   {
     id: "retain-profitable-routes",
     version: 1,
+    similarTo: { lc: 1080, url: "https://leetcode.com/problems/insufficient-nodes-in-root-to-leaf-paths/" },
     title: "Retain worthwhile survey routes",
     pattern: "trees",
     subPatterns: ["postorder pruning"],
@@ -243,6 +244,7 @@ export const cTreesProblems: CodingProblem[] = [
   {
     id: "catalog-band-tree",
     version: 1,
+    similarTo: { lc: 669, url: "https://leetcode.com/problems/trim-a-binary-search-tree/" },
     title: "Keep the catalog band",
     pattern: "trees",
     subPatterns: ["BST"],

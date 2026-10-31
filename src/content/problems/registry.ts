@@ -13,6 +13,7 @@ export { bArraysHashingProblems } from './b-arrays-hashing';
 export { bTwoPointerProblems } from './b-two-pointers';
 export { bSlidingWindowProblems } from './b-sliding-window';
 export { bStackProblems } from './b-stack';
+export { bBinarySearchProblems } from './b-binary-search';
 
 // --- Writer C (trees, tries, heap, backtracking, graphs, topo-sort, shortest-paths,
 //     dp-1d, dp-2d) ---

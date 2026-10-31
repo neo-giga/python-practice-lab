@@ -169,6 +169,8 @@ describe('generatePlan: adaptation (D3.7) and regeneration', () => {
     const first = p.weeks[0].items[0];
     expect(first.problemId).toBe('g1');
     expect(first.reasons).toEqual(['similar-after-fail:g2']);
+    // The abandoned original waits for its retry: the sibling is next.
+    expect(nextItem(p, 101, () => false)!.item.problemId).toBe('g1');
     const retry = planItems(p).find((i) => i.reasons[0] === 'retry-of:g2')!;
     expect(retry.lane).toBe('review');
     expect(p.weeks.findIndex((w) => w.items.includes(retry))).toBe(0); // day 104 is still week 0

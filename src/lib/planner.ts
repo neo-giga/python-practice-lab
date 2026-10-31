@@ -292,8 +292,9 @@ export function generatePlan(input: GenerateInput): Plan {
   }
 
   // 3. Similar-after-fail siblings go first in the current week (may exceed its budget slightly).
-  for (const it of pinnedFirst) {
-    weeks[firstOpenWeek].items.push(it);
+  for (const it of [...pinnedFirst].reverse()) {
+    weeks[firstOpenWeek].items.unshift(it); // "next": ahead of everything else this week
+
     use(firstOpenWeek, it);
     placedNew.add(it.problemId);
   }
@@ -464,9 +465,12 @@ export function diffPlans(before: Plan | null, after: Plan, catalog: CodingProbl
 /** The next thing to do: first unfinished item of the earliest open week (review items after new ones). */
 export function nextItem(plan: Plan, asOfDay: number, done: (it: PlanItem) => boolean): { item: PlanItem; week: number } | null {
   const now = Math.max(0, Math.floor((asOfDay - plan.startDay) / 7));
+  // A problem left unsolved after repeated failures waits for its scheduled retry.
+  const retried = new Set(plan.weeks.flatMap((w) => w.items.flatMap((i) => i.reasons.filter((r) => r.startsWith('retry-of:')).map((r) => r.slice(9)))));
   for (const w of plan.weeks) {
     for (const it of w.items) {
       if (done(it)) continue;
+      if (it.lane === 'new' && retried.has(it.problemId)) continue;
       if (it.lane === 'review' && w.index > now) continue; // reviews are not due yet
       return { item: it, week: w.index };
     }

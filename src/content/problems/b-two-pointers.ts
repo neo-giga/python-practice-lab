@@ -51,7 +51,7 @@ export const bTwoPointerProblems: CodingProblem[] = [
                           lo += 1
           return out
     `,
-    complexity: { time: 'O(n²)', space: 'O(n) for the sorted copy', note: 'n = len(amounts). The sort is O(n log n); each first value runs one converging scan.' },
+    complexity: { time: 'O(n²)', space: 'O(n) auxiliary for the sorted copy; the returned trios can take O(n²)', note: 'n = len(amounts). The sort is O(n log n); each first value runs one converging scan.' },
     explanation: [
       'Sort first. Fix the smallest value `a = nums[i]`; the other two must add up to `-a` inside `nums[i + 1:]`, which is the sorted pair-sum problem: move `lo` up when the total is too small and `hi` down when it is too large.',
       'Duplicates are skipped in two places: a first value equal to the previous one would repeat every trio already found, and after a match, `lo` moves past equal values so the same pair is not reported again (`hi` then follows, because the total must change).',

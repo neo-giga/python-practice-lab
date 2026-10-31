@@ -14,7 +14,8 @@ export const bIntervalProblems: CodingProblem[] = [
     estMinutes: 25,
     statement: [
       'A room calendar `booked` lists busy blocks `[start, end]` (inclusive, in minutes). The blocks are sorted by `start` and already merged: no two of them overlap or touch.',
-      'Add the block `new` and return the calendar in the same form: sorted, with every overlapping or touching block merged into one. Blocks touch when one ends exactly where the next starts, such as `[1, 2]` and `[2, 4]`. Do not modify the input lists.',
+      'Add the block `new` and return the calendar in the same form: sorted, with every overlapping or touching block merged into one. Blocks touch when one ends exactly where the next starts, such as `[1, 2]` and `[2, 4]`.',
+      '**Interview follow-up (not auto-graded):** leave the caller\'s `booked` and `new` lists unchanged.',
     ].join('\n\n'),
     examples: [
       { input: '[[9, 10], [13, 15], [20, 24]], [14, 21]', output: '[[9, 10], [13, 24]]', explanation: '`[14, 21]` overlaps both `[13, 15]` and `[20, 24]`, so all three become `[13, 24]`.' },
@@ -46,6 +47,7 @@ export const bIntervalProblems: CodingProblem[] = [
     explanation: [
       'Because `booked` is sorted and disjoint, it splits into three runs: blocks that end before `new` starts, blocks that overlap or touch `new`, and blocks that start after `new` ends.',
       'Copy the first run, fold the middle run into `new` by widening `start` and `end`, append the merged block, then copy the rest. The tests use `<` and `<=` so that touching blocks are merged.',
+      'The reference widens the local names `start` and `end` and appends a fresh `[start, end]`, so the caller\'s lists are never written. Updating `new` in place (`new[1] = ...`) gives the same calendar but surprises a caller who reuses `new`.',
     ].join('\n\n'),
     hints: [
       'The calendar is already sorted and merged. Which blocks can the new one possibly affect?',

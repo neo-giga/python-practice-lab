@@ -188,6 +188,8 @@ export const bStackProblems: CodingProblem[] = [
       { args: '"x<y<z"', expected: '"z"' },
       { args: '"no edits"', expected: '"no edits"' },
       { args: '"aa<a"', expected: '"aa"' },
+      { args: '"A1!<"', expected: '"A1"' },
+      { args: '"x = 4<5;"', expected: '"x = 5;"' },
       { args: '"ab" * 1500 + "<" * 2000', expected: '"ab" * 500', label: '"ab" typed 1 500 times, then 2 000 backspaces' },
     ],
     similarTo: { lc: 844, url: 'https://leetcode.com/problems/backspace-string-compare/' },

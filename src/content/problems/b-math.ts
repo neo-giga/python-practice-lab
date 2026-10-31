@@ -45,7 +45,7 @@ export const bMathProblems: CodingProblem[] = [
       'Test `a + b == b + a`. If true, the answer is a prefix of `a`; its length is a number that divides both lengths.',
       'Return `""` if `a + b != b + a`; else return `a[:gcd(len(a), len(b))]` with `math.gcd`.',
     ],
-    idiomNote: '`math.gcd` is built in (and since 3.9 takes any number of arguments). `a + b != b + a` checks the "same strip" condition in one line, and `"ab" * 3` builds a repeat. Slicing `a[:k]` never raises, even if `k` were larger than `len(a)`.',
+    idiomNote: '`math.gcd` comes with the standard library (and since 3.9 takes any number of arguments). `a + b != b + a` checks the "same strip" condition in one line, and `"ab" * 3` builds a repeat. Slicing `a[:k]` never raises, even if `k` were larger than `len(a)`.',
     wrong: [
       // Only accepts the shorter pattern itself as the strip.
       py`
@@ -190,14 +190,14 @@ export const bMathProblems: CodingProblem[] = [
       { args: '[[42]]', expected: '[42]' },
       { args: '[[1, 2, 3]]', expected: '[1, 2, 3]' },
       { args: '[[1], [2], [3]]', expected: '[1, 2, 3]' },
-      { args: '[[2, 4, 6], [8, 10, 12], [14, 16, 18]]', expected: '[2, 4, 6, 12, 18, 16, 14, 8, 10]' },
+      { args: '[[0, -7, 3], [5, 5, 9], [-4, 2, 8]]', expected: '[0, -7, 3, 9, 8, 2, -4, 5, 5]' },
       { args: '[[1, 1], [1, 1]]', expected: '[1, 1, 1, 1]' },
       { args: '[[1, 2, 3, 4], [10, 11, 12, 5], [9, 8, 7, 6]]', expected: 'list(range(1, 13))' },
       { args: '[[1, 2, 3], [8, 9, 4], [7, 6, 5], [-1, -2, -3]]', expected: '[1, 2, 3, 4, 5, -3, -2, -1, 7, 8, 9, 6]' },
       {
-        args: '[[r * 60 + c for c in range(60)] for r in range(50)]',
-        expected: '(lambda walk: walk(walk, [[r * 60 + c for c in range(60)] for r in range(50)]))(lambda walk, m: list(m[0]) + walk(walk, [list(t) for t in zip(*m[1:])][::-1]) if m else [])',
-        label: '50 × 60 chart holding 0..2999 row by row',
+        args: '[[(r * 60 + c) % 2001 - 1000 for c in range(60)] for r in range(50)]',
+        expected: '(lambda walk: walk(walk, [[(r * 60 + c) % 2001 - 1000 for c in range(60)] for r in range(50)]))(lambda walk, m: list(m[0]) + walk(walk, [list(t) for t in zip(*m[1:])][::-1]) if m else [])',
+        label: '50 × 60 chart; seat values (r * 60 + c) % 2001 - 1000',
       },
     ],
     similarTo: { lc: 54, url: 'https://leetcode.com/problems/spiral-matrix/' },

@@ -90,7 +90,7 @@ export const bBinarySearchProblems: CodingProblem[] = [
       { args: '15', expected: '3' },
       { args: '10**18', expected: '10**9' },
       { args: '10**18 - 1', expected: '999999999' },
-      { args: '(10**15 + 7) ** 2 - 1', expected: '10**15 + 6', label: '(10**15 + 7)**2 - 1' },
+      { args: '(10**15 - 3) ** 2 - 1', expected: '10**15 - 4', label: '(10**15 - 3)**2 - 1, just below a perfect square' },
       { args: '10**30', expected: '10**15' },
     ],
     similarTo: { lc: 69, url: 'https://leetcode.com/problems/sqrtx/' },
@@ -100,79 +100,80 @@ export const bBinarySearchProblems: CodingProblem[] = [
   {
     id: 'value-span-in-log',
     version: 1,
-    title: 'First and last slot of a value in a sorted log',
+    title: 'Find the block of crates with one weight',
     pattern: 'binary-search',
     subPatterns: ['index search', 'lower/upper bound'],
     difficulty: 'medium',
     priority: 1,
     estMinutes: 20,
     statement: [
-      'A sensor log `log` is sorted in non-decreasing order and may repeat values. Given `value`, return `[first, last]`: the first and last positions where it appears.',
-      'If `value` is not in the log, return `[-1, -1]`. Aim for O(log n): the log can be long.',
+      'Warehouse robots keep a long shelf of crates ordered from lightest to heaviest; `shelf[i]` is the weight in the slot numbered `i` (from 0). Many crates can weigh the same, and because of the ordering they always stand side by side as one unbroken block.',
+      'A picker asks for every crate that weighs `weight`. Answer with the edges of that block, `[first, last]`: the slot of its leftmost crate and the slot of its rightmost crate. When no crate on the shelf has that weight, answer `[-1, -1]`.',
+      'The shelf holds up to 100 000 crates and pickers ask all day, so locate both edges by repeatedly halving the shelf instead of walking along it.',
     ].join('\n\n'),
     examples: [
-      { input: '[1, 3, 3, 3, 8, 9], 3', output: '[1, 3]', explanation: '`3` fills positions 1, 2 and 3.' },
-      { input: '[1, 3, 3, 3, 8, 9], 4', output: '[-1, -1]', explanation: '`4` would go between the 3s and the 8, but it is not there.' },
+      { input: '[1, 3, 3, 3, 8, 9], 3', output: '[1, 3]', explanation: 'The crates of weight 3 stand in slots 1, 2 and 3.' },
+      { input: '[1, 3, 3, 3, 8, 9], 4', output: '[-1, -1]', explanation: 'A crate of weight 4 would stand between the 3s and the 8, but there is none.' },
     ],
-    constraints: ['0 <= len(log) <= 10**5', 'log is sorted in non-decreasing order', '-10**9 <= log[i], value <= 10**9'],
-    signature: 'def value_span(log: list[int], value: int) -> list[int]',
+    constraints: ['0 <= len(shelf) <= 10**5', 'shelf is sorted in non-decreasing order', '-10**9 <= shelf[i], weight <= 10**9'],
+    signature: 'def value_span(shelf: list[int], weight: int) -> list[int]',
     starter: py`
-      def value_span(log: list[int], value: int) -> list[int]:
+      def value_span(shelf: list[int], weight: int) -> list[int]:
           return [-1, -1]
     `,
     solution: py`
       from bisect import bisect_left, bisect_right
 
-      def value_span(log: list[int], value: int) -> list[int]:
-          first = bisect_left(log, value)
-          if first == len(log) or log[first] != value:
+      def value_span(shelf: list[int], weight: int) -> list[int]:
+          first = bisect_left(shelf, weight)
+          if first == len(shelf) or shelf[first] != weight:
               return [-1, -1]
-          return [first, bisect_right(log, value) - 1]
+          return [first, bisect_right(shelf, weight) - 1]
     `,
-    complexity: { time: 'O(log n)', space: 'O(1)', note: 'n = len(log); two binary searches.' },
+    complexity: { time: 'O(log n)', space: 'O(1)', note: 'n = len(shelf); two binary searches.' },
     explanation: [
-      '`bisect_left(log, value)` is the first position whose item is `>= value`; `bisect_right(log, value)` is the first position whose item is `> value`. The equal items sit exactly in between, so the span is `[bisect_left, bisect_right - 1]`.',
-      'If `bisect_left` lands at the end, or on a different value, the value is absent.',
+      '`bisect_left(shelf, weight)` is the first position whose item is `>= weight`; `bisect_right(shelf, weight)` is the first position whose item is `> weight`. The equal items sit exactly in between, so the span is `[bisect_left, bisect_right - 1]`.',
+      'If `bisect_left` lands at the end, or on a different weight, the weight is absent.',
     ].join('\n\n'),
     hints: [
-      'Two binary searches: one for where the run of `value` starts, one for where it ends.',
-      'Use `bisect_left` for the first position `>= value` and `bisect_right` for the first position `> value`.',
-      '`first = bisect_left(log, value)`; if `first == len(log)` or `log[first] != value`, return `[-1, -1]`; else return `[first, bisect_right(log, value) - 1]`.',
+      'The block has two edges. Can you find each one with its own binary search?',
+      'Use `bisect_left` for the first position `>= weight` and `bisect_right` for the first position `> weight`.',
+      '`first = bisect_left(shelf, weight)`; if `first == len(shelf)` or `shelf[first] != weight`, return `[-1, -1]`; else return `[first, bisect_right(shelf, weight) - 1]`.',
     ],
-    idiomNote: '`bisect_left` and `bisect_right` bracket a run of equal values as the half-open range `[left, right)`, so `right - left` is its count. `bisect_left` can return `len(log)`: check that before indexing `log[first]`, or an absent large value raises `IndexError`.',
+    idiomNote: '`bisect_left` and `bisect_right` bracket a run of equal values as the half-open range `[left, right)`, so `right - left` is its count. `bisect_left` can return `len(shelf)`: check that before indexing `shelf[first]`, or an absent large weight raises `IndexError`.',
     wrong: [
-      // No bounds check: a value larger than everything raises IndexError.
+      // No bounds check: a weight larger than everything raises IndexError.
       py`
         from bisect import bisect_left, bisect_right
 
-        def value_span(log: list[int], value: int) -> list[int]:
-            first = bisect_left(log, value)
-            if log[first] != value:
+        def value_span(shelf: list[int], weight: int) -> list[int]:
+            first = bisect_left(shelf, weight)
+            if shelf[first] != weight:
                 return [-1, -1]
-            return [first, bisect_right(log, value) - 1]
+            return [first, bisect_right(shelf, weight) - 1]
       `,
       // Uses bisect_right as the last index: one past the end of the run.
       py`
         from bisect import bisect_left, bisect_right
 
-        def value_span(log: list[int], value: int) -> list[int]:
-            first = bisect_left(log, value)
-            if first == len(log) or log[first] != value:
+        def value_span(shelf: list[int], weight: int) -> list[int]:
+            first = bisect_left(shelf, weight)
+            if first == len(shelf) or shelf[first] != weight:
                 return [-1, -1]
-            return [first, bisect_right(log, value)]
+            return [first, bisect_right(shelf, weight)]
       `,
       // Hand-written search that stops at any match, not the first one.
       py`
-        def value_span(log: list[int], value: int) -> list[int]:
-            lo, hi = 0, len(log) - 1
+        def value_span(shelf: list[int], weight: int) -> list[int]:
+            lo, hi = 0, len(shelf) - 1
             while lo <= hi:
                 mid = (lo + hi) // 2
-                if log[mid] == value:
+                if shelf[mid] == weight:
                     last = mid
-                    while last + 1 < len(log) and log[last + 1] == value:
+                    while last + 1 < len(shelf) and shelf[last + 1] == weight:
                         last += 1
                     return [mid, last]
-                if log[mid] < value:
+                if shelf[mid] < weight:
                     lo = mid + 1
                 else:
                     hi = mid - 1
@@ -190,7 +191,7 @@ export const bBinarySearchProblems: CodingProblem[] = [
       { args: '[1, 2, 3], 0', expected: '[-1, -1]' },
       { args: '[1, 2, 3], 9', expected: '[-1, -1]' },
       { args: '[2, 7, 7, 7, 7, 7, 7], 7', expected: '[1, 6]' },
-      { args: '[0] * 1000 + [7] * 1500 + [9] * 500, 7', expected: '[1000, 2499]', label: '1 000 zeros, 1 500 sevens, 500 nines; value 7' },
+      { args: '[0] * 1000 + [7] * 1500 + [9] * 500, 7', expected: '[1000, 2499]', label: '1 000 zeros, 1 500 sevens, 500 nines; weight 7' },
     ],
     similarTo: { lc: 34, url: 'https://leetcode.com/problems/find-first-and-last-position-of-element-in-sorted-array/' },
     recipeIds: ['bisect-basics'],

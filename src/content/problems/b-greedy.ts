@@ -13,7 +13,7 @@ export const bGreedyProblems: CodingProblem[] = [
     priority: 1,
     estMinutes: 20,
     statement: [
-      'A courier moves along a row of checkpoints numbered from 0. At checkpoint `i` they can refuel for up to `boost[i]` checkpoints: from `i` they may move forward to any checkpoint from `i + 1` to `i + boost[i]`. A checkpoint with `boost[i] == 0` is a dead end unless they can skip over it from earlier.',
+      'A courier moves along a row of checkpoints numbered from 0. At checkpoint `i` they can refuel for up to `boost[i]` checkpoints: from `i` they may move forward to any checkpoint from `i + 1` to `i + boost[i]`. A checkpoint with `boost[i] == 0` (other than the last one, where the trip ends) is a dead end unless they can skip over it from earlier.',
       'The courier starts at checkpoint 0. Return `True` if they can reach the last checkpoint, else `False`.',
     ].join('\n\n'),
     examples: [

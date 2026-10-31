@@ -27,15 +27,17 @@ export const bSlidingWindowProblems: CodingProblem[] = [
           return sum(sales[:k])
     `,
     solution: py`
+      from itertools import islice
+
       def best_stretch(sales: list[int], k: int) -> int:
-          window = sum(sales[:k])
+          window = sum(islice(sales, k))  # first k days, without copying them
           best = window
           for i in range(k, len(sales)):
               window += sales[i] - sales[i - k]  # day i enters, day i - k leaves
               best = max(best, window)
           return best
     `,
-    complexity: { time: 'O(n)', space: 'O(1)', note: 'n = len(sales). Summing every window from scratch would be O(n·k).' },
+    complexity: { time: 'O(n)', space: 'O(1)', note: 'n = len(sales). `islice` seeds the window without a copy; `sum(sales[:k])` would add O(k) extra space, and summing every window from scratch would be O(n·k) time.' },
     explanation: [
       'Two neighbouring windows share `k - 1` days. Instead of re-adding them, keep the running total of the current window: when the window slides right by one, add the day that enters (`sales[i]`) and subtract the day that leaves (`sales[i - k]`).',
       'Seed `best` with the first window, not with `0`: when every day loses money, the answer is negative.',
@@ -43,9 +45,9 @@ export const bSlidingWindowProblems: CodingProblem[] = [
     hints: [
       'Two consecutive windows differ by only two days. What changes when the window moves one step?',
       'Keep a running total. Start with the sum of the first `k` days; each step add the new day and subtract the one that falls out.',
-      '`window = sum(sales[:k])`, `best = window`; for `i` in `range(k, n)`: `window += sales[i] - sales[i - k]`; `best = max(best, window)`.',
+      '`window = sum(islice(sales, k))`, `best = window`; for `i` in `range(k, n)`: `window += sales[i] - sales[i - k]`; `best = max(best, window)`.',
     ],
-    idiomNote: '`sum(sales[:k])` seeds the window in one line. Seed `best` with that real window instead of `0` (wrong for all-negative data) or `float("-inf")` (would leak a float if the loop never ran). The one-liner `max(sum(sales[i:i + k]) for i in ...)` is correct but O(n·k).',
+    idiomNote: '`sum(sales[:k])` seeds the window in one line, but the slice copies k items (O(k) extra space); `sum(itertools.islice(sales, k))` reads them in place. Seed `best` with that real window instead of `0` (wrong for all-negative data) or `float("-inf")` (would leak a float if the loop never ran). The one-liner `max(sum(sales[i:i + k]) for i in ...)` is correct but O(n·k).',
     wrong: [
       // Starts best at 0, so an all-negative week reports 0.
       py`
@@ -91,7 +93,7 @@ export const bSlidingWindowProblems: CodingProblem[] = [
       { args: 'list(range(3000)), 500', expected: '1374750', label: '0, 1, ..., 2999 with k = 500' },
     ],
     similarTo: { lc: 643, url: 'https://leetcode.com/problems/maximum-average-subarray-i/' },
-    recipeIds: ['sliding-window'],
+    recipeIds: ['sliding-window', 'itertools-core'],
     provenance: 'original',
   },
   {
@@ -128,7 +130,7 @@ export const bSlidingWindowProblems: CodingProblem[] = [
                   window.remove(scans[i - k])
           return False
     `,
-    complexity: { time: 'O(n)', space: 'O(min(n, k))', note: 'n = len(scans). The set never holds more than k badges.' },
+    complexity: { time: 'O(n)', space: 'O(min(n, k))', note: 'n = len(scans). The set holds at most k badges between steps (k + 1 for a moment, just before the eviction).' },
     explanation: [
       'Only the last `k` swipes can pair with the current one. Keep exactly those badges in a set: before adding the current badge, check whether it is already there.',
       'The window never holds a duplicate (we would have returned), so its size equals the number of swipes in it. When it grows past `k`, remove the swipe that is now too far back, `scans[i - k]`.',
@@ -178,6 +180,7 @@ export const bSlidingWindowProblems: CodingProblem[] = [
       { args: '["a", "b", "a", "b"], 1', expected: 'False' },
       { args: '["q", "r", "s", "q", "q"], 1', expected: 'True' },
       { args: '["a", "b", "c", "b"], 2', expected: 'True' },
+      { args: '["x", "y", "x"], 7', expected: 'True' },
       { args: '[str(i) for i in range(3000)] + ["0"], 3000', expected: 'True', label: '3 000 distinct badges, then badge "0" again; k = 3000' },
       { args: '[str(i) for i in range(3000)] + ["0"], 2999', expected: 'False', label: 'Same log; k = 2999' },
     ],

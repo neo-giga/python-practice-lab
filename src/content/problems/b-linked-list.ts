@@ -17,7 +17,8 @@ export const bLinkedListProblems: CodingProblem[] = [
     estMinutes: 15,
     statement: [
       'A train is a singly linked list of carriages, `head` first. A late passenger boards at the **middle** carriage. If the train has an even number of carriages there are two middles; the passenger takes the second one.',
-      'Return the middle carriage node (the rest of the train follows from it). For an empty train (`head` is `None`), return `None`. Try to do it in a single walk, without counting first.',
+      'Return the middle carriage (the rest of the train follows from it). For an empty train (`head` is `None`), return `None`.',
+      '**Interview follow-up (not auto-graded):** return the original middle node itself, not a copy of the second half, and find it in a single walk without counting first.',
     ].join('\n\n'),
     examples: [
       { input: 'build_list([4, 8, 15, 16, 23])', output: '[15, 16, 23]', explanation: 'Five carriages: the third one (`15`) is the middle, and `16, 23` follow it.' },
@@ -41,6 +42,7 @@ export const bLinkedListProblems: CodingProblem[] = [
     explanation: [
       'Walk two pointers from the front: `slow` moves one carriage per step, `fast` moves two. When `fast` runs off the end, `slow` has covered half the distance, so it is at the middle.',
       'The loop condition `fast and fast.next` stops exactly when `fast` cannot make a full double step. For an even length that leaves `slow` on the second middle, which is the one asked for; for an empty train it returns `None` without a special case.',
+      'The reference returns the existing node, so the caller still holds one train, not two. Copying the values into a list and rebuilding the second half gives the same values but uses O(n) extra space and hands back different nodes; an interviewer will ask for the pointer version.',
     ].join('\n\n'),
     hints: [
       'Two walkers start at the front, one twice as fast. Where is the slow one when the fast one reaches the end?',
@@ -192,7 +194,8 @@ export const bLinkedListProblems: CodingProblem[] = [
     estMinutes: 25,
     statement: [
       'An old utility meter stores a reading as a linked list of decimal digits, **least significant digit first**: the reading 174 is `4 -> 7 -> 1`. Readings have no leading zeros, except the reading 0 itself (`0`).',
-      'Given two non-empty readings `a` and `b`, return their sum as a new list in the same format. Readings can be longer than any fixed-width integer.',
+      'Given two non-empty readings `a` and `b`, return their sum as a list in the same format. Readings can be longer than any fixed-width integer.',
+      '**Interview follow-up (not auto-graded):** build the sum as a fresh list and leave `a` and `b` unchanged, adding digit by digit rather than converting whole readings to `int`.',
     ].join('\n\n'),
     examples: [
       { input: 'build_list([4, 7, 1]), build_list([9, 3])', output: '[3, 1, 2]', explanation: '174 + 39 = 213, stored as `3 -> 1 -> 2`.' },
@@ -221,13 +224,14 @@ export const bLinkedListProblems: CodingProblem[] = [
     explanation: [
       'Least significant digit first is exactly the order of column addition by hand, so walk both lists together, add the two digits and the carry, write `total % 10` and carry `total // 10`.',
       'A list that runs out contributes 0. Keep looping while either list has digits **or** a carry is left, so 99 + 1 gets its third digit.',
+      'The reference only reads `a` and `b` and appends new nodes behind a dummy head, so the inputs survive. Converting both readings to `int` and back also works for short readings, but `int(str)` and `str(int)` refuse more than 4 300 digits by default (CPython 3.11+), and a digit-building loop such as `while total:` produces an empty list for 0 + 0.',
     ].join('\n\n'),
     hints: [
       'This is grade-school column addition. Which column do you add first, and where are those digits?',
       'Walk both lists at once with a carry; a finished list counts as 0. Build the result behind a dummy node.',
       '`while a or b or carry:` `total = carry + (a.val if a else 0) + (b.val if b else 0)`; `carry, digit = divmod(total, 10)`; append `ListNode(digit)`; advance `a` and `b` if they exist.',
     ],
-    idiomNote: '`carry, digit = divmod(total, 10)` gives quotient and remainder in one call. `a.val if a else 0` is the conditional expression that lets one loop handle lists of different lengths. Converting to `int` and back also works in Python (ints are unbounded), but very long readings hit the int/str conversion limit of 4 300 digits.',
+    idiomNote: '`carry, digit = divmod(total, 10)` gives quotient and remainder in one call. `a.val if a else 0` is the conditional expression that lets one loop handle lists of different lengths. Python ints are unbounded, so converting is tempting, but the int/str conversion limit (4 300 digits by default) makes it fail on very long readings.',
     wrong: [
       // Drops the final carry: 99 + 1 comes out as 00.
       py`
@@ -272,12 +276,31 @@ export const bLinkedListProblems: CodingProblem[] = [
                 b = b.next if b else None
             return dummy.next
       `,
+      // Converts to int and back: the digit loop yields an empty list for 0 + 0 (and int/str conversion caps out at 4 300 digits).
+      py`
+        def add_readings(a: Optional[ListNode], b: Optional[ListNode]) -> Optional[ListNode]:
+            def to_int(node):
+                digits = []
+                while node:
+                    digits.append(str(node.val))
+                    node = node.next
+                return int("".join(reversed(digits)))
+
+            total = to_int(a) + to_int(b)
+            dummy = tail = ListNode()
+            while total:
+                total, digit = divmod(total, 10)
+                tail.next = ListNode(digit)
+                tail = tail.next
+            return dummy.next
+      `,
     ],
     grading: { entry: 'add_readings', kind: 'function', compare: 'exact', transform: 'linked_list' },
     cases: [
       { args: 'build_list([4, 7, 1]), build_list([9, 3])', expected: '[3, 1, 2]' },
       { args: 'build_list([9, 9]), build_list([1])', expected: '[0, 0, 1]' },
       { args: 'build_list([0]), build_list([7, 3])', expected: '[7, 3]' },
+      { args: 'build_list([0]), build_list([0])', expected: '[0]' },
       { args: 'build_list([5]), build_list([5])', expected: '[0, 1]' },
       { args: 'build_list([1]), build_list([2, 4, 6])', expected: '[3, 4, 6]' },
       { args: 'build_list([9, 9, 9]), build_list([9, 9, 9, 9, 9])', expected: '[8, 9, 9, 0, 0, 1]' },
@@ -299,7 +322,8 @@ export const bLinkedListProblems: CodingProblem[] = [
     estMinutes: 25,
     statement: [
       'A boarding queue is a singly linked list, `head` first. Counting positions from 1, the gate agent calls everyone in an **odd** position first, then everyone in an **even** position. Within each group, people keep their original order.',
-      'Rearrange the queue by relinking the existing nodes (no new nodes, O(1) extra space) and return the new head. Positions matter, not the values stored in the nodes.',
+      'Return the head of the regrouped queue. Positions matter, not the values stored in the nodes.',
+      '**Interview follow-up (not auto-graded):** regroup by relinking the existing nodes, with no new nodes and O(1) extra space.',
     ].join('\n\n'),
     examples: [
       { input: 'build_list([8, 2, 6, 4, 9])', output: '[8, 6, 9, 2, 4]', explanation: 'Positions 1, 3, 5 hold `8, 6, 9`; positions 2, 4 hold `2, 4`.' },
@@ -329,6 +353,7 @@ export const bLinkedListProblems: CodingProblem[] = [
     explanation: [
       'Split the queue into two chains while walking it once: `odd` is the tail of the odd-position chain and `even` the tail of the even-position chain. Each step, the node after `even` is the next odd node, and the node after that is the next even node.',
       'Remember where the even chain starts (`even_head`) before relinking, and attach it after the last odd node at the end. The loop stops when there is no further odd node to take, which covers both even and odd lengths.',
+      'Only pointers change: no node is created and only four names are used, so the extra space is O(1). Reading the values into a list and rebuilding (`values[::2] + values[1::2]`) gives the same order but costs O(n) space and new nodes, which is what the follow-up rules out.',
     ].join('\n\n'),
     hints: [
       'Build two chains as you walk: one of the odd positions, one of the even positions.',

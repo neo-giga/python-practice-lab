@@ -33,7 +33,7 @@ function runRecipe(code: string) {
   return { ...res, stdout: out, stderr: err };
 }
 
-function grade(source: string, e: (typeof exercises)[number]): GradeReport {
+function grade(source: string, e: Pick<(typeof exercises)[number], 'grading' | 'cases'>): GradeReport {
   const fn = py.globals.get('pil_grade');
   const res = JSON.parse(fn(source, JSON.stringify({ ...e.grading, cases: e.cases })));
   fn.destroy();
@@ -93,7 +93,7 @@ describe(`real Pyodide ${PYODIDE_VERSION}`, () => {
   });
 
   it('grading is Python-native and type-strict, and reports errors per case', () => {
-    const e = exercises.find((x) => x.id === 'pair-indexes' || x.id === 'two-sum-indexes')!;
+    const e = codingProblems.find((x) => x.id === 'two-sum-indexes')!;
     // Right values, wrong type: a tuple is not a list.
     const tupleAnswer = grade('def pair_indexes(nums, target):\n    seen = {}\n    for j, x in enumerate(nums):\n        if target - x in seen:\n            return (seen[target - x], j)\n        seen[x] = j\n', e);
     expect(tupleAnswer.passed).toBe(0);
@@ -114,7 +114,7 @@ describe(`real Pyodide ${PYODIDE_VERSION}`, () => {
   });
 
   it('two-sum-indexes accepts a valid reverse-scanning solution', () => {
-    const e = exercises.find((x) => x.id === 'two-sum-indexes')!;
+    const e = codingProblems.find((x) => x.id === 'two-sum-indexes')!;
     const reverse = 'def pair_indexes(nums, target):\n    seen = {}\n    for i in range(len(nums) - 1, -1, -1):\n        x = nums[i]\n        if target - x in seen:\n            return [i, seen[target - x]]\n        seen[x] = i\n    return []\n';
     const r = grade(reverse, e);
     expect(failing(r)).toEqual([]);

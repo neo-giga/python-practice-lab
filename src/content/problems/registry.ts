@@ -6,6 +6,7 @@
 
 // --- Writer A (examples and upgraded drills) ---
 export { exampleProblems } from './_examples';
+export { upgradedProblems } from './upgraded';
 
 // --- Writer B (arrays-hashing, two-pointers, sliding-window, stack, binary-search,
 //     linked-list, intervals, greedy, math) ---

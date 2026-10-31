@@ -10,4 +10,7 @@ import { codingProblems } from './problems/index';
 
 export { topics, codingProblems };
 export const recipes: Recipe[] = [...syntaxRecipes, ...libraryRecipes, ...patternRecipes];
-export const exercises: Exercise[] = [...syntaxExercises, ...libraryExercises, ...patternExercises];
+/** All 58 drills as they existed before M1 (used for legacy links and backups). */
+export const legacyExercises: Exercise[] = [...syntaxExercises, ...libraryExercises, ...patternExercises];
+/** The Python fluency track: drills that were not upgraded to coding problems. */
+export const exercises: Exercise[] = legacyExercises.filter((e) => !codingProblems.some((p) => p.id === e.id && p.legacy));

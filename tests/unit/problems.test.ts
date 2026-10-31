@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { codingProblems, exercises, recipes } from '../../src/content/index';
+import { codingProblems, exercises, legacyExercises, recipes } from '../../src/content/index';
 import { CORE_MIN, PATTERN_IDS, patternAncestors, patternById, patternDepth, patterns } from '../../src/content/patterns';
 import { exampleCases, problemSpec } from '../../src/content/problem-schema';
 import { validateProblems } from '../../src/content/validate-problems';
@@ -55,6 +55,17 @@ describe('coding problems', () => {
     const msg = validateProblems([broken], recipeIds, taken).join('\n');
     for (const re of [/exactly 3 non-empty hints/, /equals the reference/, /needs 6-12 cases/, /does not equal any case/, /unknown pattern/, /difficulty must be/, /must not mention LeetCode/, /similarTo.url/, /needs grading.checker/])
       expect(msg).toMatch(re);
+  });
+  it('the 39 upgraded drills keep id, version, code and cases of the legacy drill exactly', () => {
+    const upgraded = codingProblems.filter((p) => p.legacy);
+    expect(upgraded).toHaveLength(39);
+    for (const p of upgraded) {
+      const e = legacyExercises.find((x) => x.id === p.id)!;
+      expect(e, p.id).toBeDefined();
+      expect([p.version, p.solution, p.starter, p.grading, p.cases, p.wrong, p.hints, p.signature]).toEqual([e.version, e.solution, e.starter, e.grading, e.cases, e.wrong, e.hints, e.signature]);
+      expect(exercises.some((x) => x.id === p.id), `${p.id} must leave the fluency list`).toBe(false);
+    }
+    expect(exercises.length + upgraded.length).toBe(58);
   });
   it('validator rejects an id that clashes with a drill or recipe', () => {
     const clash = { ...structuredClone(codingProblems[0]), id: exercises[0].id };

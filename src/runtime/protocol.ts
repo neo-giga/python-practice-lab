@@ -4,9 +4,23 @@
 export interface GradeSpec {
   entry: string;
   kind: 'function' | 'ops' | 'calls';
-  compare: 'exact' | 'exact_ordered' | 'unordered' | 'unordered_nested' | 'approx';
-  check?: 'return' | 'mutated_arg0';
+  /**
+   * 'checker': the problem ships `checker` (Python source defining
+   * `check(args, result)` that returns None when `result` is acceptable, or a
+   * message). It runs in a fresh namespace on a deep copy of the original args.
+   */
+  compare: 'exact' | 'exact_ordered' | 'unordered' | 'unordered_nested' | 'approx' | 'checker';
+  /**
+   * 'mutated_arg0': must return None; args[0] is graded after the call.
+   * 'return_k_prefix': must return an int k == len(expected); args[0][:k] is graded
+   * (with compare 'exact' or 'unordered').
+   */
+  check?: 'return' | 'mutated_arg0' | 'return_k_prefix';
   transform?: 'linked_list' | 'tree';
+  /** Python source defining check(args, result); required when compare is 'checker'. */
+  checker?: string;
+  /** LeetCode-style method name (camelCase). If `entry` is missing, `Solution().<lcMethod>` is called instead. */
+  lcMethod?: string;
   cases: { args: string; expected: string }[];
 }
 

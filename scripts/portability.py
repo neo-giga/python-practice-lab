@@ -46,6 +46,9 @@ SAME_CHECKS = [
     ([{"x": 1, "y": 2}], [{"y": 2, "x": 1}], "exact_ordered", False),
     ({"a": ["p", "q"]}, {"a": ["q", "p"]}, "exact_ordered", False),
     ({"a": (1,)}, {"a": [1]}, "exact_ordered", False),
+    # structural snapshots stay type-strict (True is not 1 inside a tree or list)
+    (harness._Shape("tree", [1, True]), harness._Shape("tree", [1, 1]), "exact", False),
+    (harness._Shape("list", [1, 2]), harness._Shape("list", [1, 2]), "exact", True),
 ]
 
 
@@ -83,6 +86,23 @@ def main(path):
             rep = grade(src, spec)
             if rep["passed"] == rep["total"]:
                 fails.append(f"exercise {e['id']} {label} unexpectedly passes all {rep['total']} cases")
+    for p in data.get("problems", []):
+        if p.get("minPython") and version_tuple(p["minPython"]) > running:
+            skips.append(f"problem {p['id']} (needs {p['minPython']})")
+            continue
+        rep = grade(p["solution"], p["spec"])
+        if rep["passed"] != rep["total"]:
+            bad = [c for c in rep["cases"] if not c["passed"]]
+            fails.append(f"problem {p['id']} solution {rep['passed']}/{rep['total']}: {bad[:2]}")
+        else:
+            passes += 1
+        ex = grade(p["solution"], p["exampleSpec"])
+        if ex["passed"] != ex["total"] or ex["total"] < 2:
+            fails.append(f"problem {p['id']} examples {ex['passed']}/{ex['total']}")
+        for label, src in [("starter", p["starter"])] + [(f"wrong[{i}]", w) for i, w in enumerate(p["wrong"])]:
+            rep = grade(src, p["spec"])
+            if rep["passed"] == rep["total"]:
+                fails.append(f"problem {p['id']} {label} unexpectedly passes all {rep['total']} cases")
     print(f"CPython {sys.version.split()[0]}: {passes} passed, {len(fails)} failed, {len(skips)} skipped")
     for s in skips:
         print("SKIP", s)

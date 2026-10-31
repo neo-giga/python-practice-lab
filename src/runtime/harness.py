@@ -16,6 +16,7 @@ learner mutating an input cannot alter the expectation.
 """
 
 import builtins
+import copy
 import io
 import json
 import math
@@ -80,6 +81,63 @@ def build_tree(values):
             queue.append(node.right)
         i += 1
     return root
+
+def build_cycle_list(values, pos):
+    """Like build_list, but the tail links back to the node at index pos (pos -1: no cycle)."""
+    head = build_list(values)
+    if head is None or pos < 0:
+        return head
+    nodes = []
+    node = head
+    while node is not None:
+        nodes.append(node)
+        node = node.next
+    nodes[-1].next = nodes[pos]
+    return head
+
+def build_shared_lists(a, b, tail):
+    """Two lists a + tail and b + tail that share the same tail nodes. Returns (head_a, head_b)."""
+    shared = build_list(tail)
+    def attach(values):
+        head = build_list(values)
+        if head is None:
+            return shared
+        node = head
+        while node.next is not None:
+            node = node.next
+        node.next = shared
+        return head
+    return attach(a), attach(b)
+
+class GraphNode:
+    def __init__(self, val=0, neighbors=None):
+        self.val = val
+        self.neighbors = neighbors if neighbors is not None else []
+    def __repr__(self):
+        return f"GraphNode({self.val})"
+
+def build_graph(adj):
+    """Adjacency list (1-indexed, LeetCode style): adj[i] lists the neighbours of node i + 1. Returns node 1, or None."""
+    if not adj:
+        return None
+    nodes = [GraphNode(i + 1) for i in range(len(adj))]
+    for i, nbrs in enumerate(adj):
+        nodes[i].neighbors = [nodes[j - 1] for j in nbrs]
+    return nodes[0]
+
+def graph_to_adj(node):
+    """Inverse of build_graph: the adjacency list of every node reachable from node, ordered by val."""
+    if node is None:
+        return []
+    seen = {}
+    stack = [node]
+    while stack:
+        cur = stack.pop()
+        if cur.val in seen:
+            continue
+        seen[cur.val] = cur
+        stack.extend(cur.neighbors)
+    return [[n.val for n in seen[v].neighbors] for v in sorted(seen)]
 '''
 
 MAX_NODES = 10_000
@@ -95,7 +153,8 @@ class _Shape:
         self.values = values
 
     def __eq__(self, other):
-        return isinstance(other, _Shape) and self.kind == other.kind and self.values == other.values
+        # Type-strict like `same`: a tree holding True is not a tree holding 1.
+        return isinstance(other, _Shape) and self.kind == other.kind and same(self.values, other.values)
 
     def __repr__(self):
         return f"{self.kind}{self.values!r}"
@@ -341,12 +400,55 @@ def _call_ops(ns, entry, ops, params):
     return results
 
 
+def _resolve_entry(ns, entry, lc_method):
+    """The learner's function: top-level `entry`, else `Solution().<lc_method>` (LeetCode habit)."""
+    fn = ns.get(entry)
+    if callable(fn) and not isinstance(fn, type):
+        return fn
+    if lc_method:
+        sol = ns.get("Solution")
+        if isinstance(sol, type):
+            method = getattr(sol(), lc_method, None)
+            if callable(method):
+                return method
+            raise NameError(f"class Solution has no method {lc_method!r} (or define a function {entry!r})")
+    if callable(fn):
+        return fn
+    raise NameError(f"function {entry!r} is not defined")
+
+
+def _load_checker(source):
+    """Compile the problem's checker in its own fresh namespace (never the learner's)."""
+    ns = _fresh_namespace()
+    exec(compile(source, "<checker>", "exec"), ns)
+    fn = ns.get("check")
+    if not callable(fn):
+        raise NameError("checker source does not define check(args, result)")
+    return fn
+
+
+class _CaseDone(Exception):
+    """Internal: the case was judged by a checker."""
+
+
+def _run_checker(check_fn, original_args, actual):
+    """None if accepted, else a message. Checker bugs on odd results count as a rejection."""
+    try:
+        verdict = check_fn(original_args, actual)
+    except Exception as exc:  # noqa: BLE001 - malformed results often make the checker raise
+        return f"Rejected by the checker ({type(exc).__name__}: {exc})"
+    if verdict is None:
+        return None
+    return str(verdict)[:REPR_LIMIT] or "Rejected by the checker"
+
+
 def pil_grade(source, spec_json):
     spec = json.loads(spec_json)
     entry = spec["entry"]
     kind = spec.get("kind", "function")
     mode = spec.get("compare", "exact")
     check = spec.get("check", "return")
+    lc_method = spec.get("lcMethod")
     transform = TRANSFORMS[spec.get("transform")]
     report = {"cases": [], "passed": 0, "total": len(spec["cases"]), "compileError": None}
 
@@ -365,9 +467,12 @@ def pil_grade(source, spec_json):
         row = {"input": case["args"], "expected": None, "actual": None,
                "passed": False, "error": None, "stdout": ""}
         expected_ns = _fresh_namespace()
+        checker = None
         try:
             expected = _eval_value(case["expected"], expected_ns)
-            if spec.get("transform"):
+            if mode == "checker":
+                checker = _load_checker(spec.get("checker") or "")
+            if spec.get("transform") and mode != "checker":
                 # Expected list/tree values are written as plain lists (level order for trees).
                 expected = _Shape("list" if spec["transform"] == "linked_list" else "tree", expected)
             row["expected"] = show(expected)
@@ -394,18 +499,33 @@ def pil_grade(source, spec_json):
                     raise NameError(f"function {entry!r} is not defined")
                 actual = [fn(*call_args) for call_args in _eval_value(case["args"], ns)]
             else:
-                fn = ns.get(entry)
-                if not callable(fn):
-                    raise NameError(f"function {entry!r} is not defined")
+                fn = _resolve_entry(ns, entry, lc_method)
                 args = _eval_value("(" + case["args"] + ",)", ns) if case["args"].strip() else ()
+                original = copy.deepcopy(args) if checker is not None else None
                 returned = fn(*args)
                 if check == "mutated_arg0":
                     if returned is not None:
                         raise AssertionError(
                             f"modify the list in place and return None (returned {show(returned)})")
                     actual = args[0]
+                elif check == "return_k_prefix":
+                    if type(returned) is not int:
+                        raise AssertionError(
+                            f"return the count k as an int (returned {show(returned)})")
+                    if returned != len(expected):
+                        row["actual"] = f"k = {show(returned)}"
+                        raise AssertionError(f"expected k = {len(expected)}, got k = {returned}")
+                    actual = args[0][:returned]
                 else:
                     actual = returned
+            if checker is not None:
+                # The checker sees the raw result; the report shows the transformed snapshot.
+                row["actual"] = show(transform(actual))
+                verdict = _run_checker(checker, original, actual)
+                row["passed"] = verdict is None
+                if verdict is not None:
+                    row["error"] = verdict
+                raise _CaseDone()
             actual = transform(actual)
             row["actual"] = show(actual)
             row["passed"] = bool(same(actual, expected, mode))
@@ -413,6 +533,8 @@ def pil_grade(source, spec_json):
                 row["error"] = f"Type differs: expected {type(expected).__name__}, got {type(actual).__name__}"
             elif not row["passed"] and mode == "exact_ordered" and same(actual, expected, "exact"):
                 row["error"] = "Same keys and values, but the dict key order differs"
+        except _CaseDone:
+            pass
         except BaseException as exc:  # noqa: BLE001
             row["error"] = format_user_error(exc)
         finally:

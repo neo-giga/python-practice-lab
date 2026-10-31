@@ -6,9 +6,10 @@ import { createRequire } from 'node:module';
 import { dirname } from 'node:path';
 import { beforeAll, describe, expect, it } from 'vitest';
 import { loadPyodide, type PyodideInterface } from 'pyodide';
-import { exercises, recipes } from '../../src/content/index';
+import { codingProblems, exercises, recipes } from '../../src/content/index';
+import { gateProblem } from '../../src/content/problem-gate';
 import { EXPECTED_PYTHON_VERSION, PYODIDE_VERSION } from '../../src/runtime/versions';
-import type { GradeReport } from '../../src/runtime/protocol';
+import type { GradeReport, GradeSpec } from '../../src/runtime/protocol';
 
 const harness = readFileSync('src/runtime/harness.py', 'utf8');
 let py: PyodideInterface;
@@ -76,6 +77,18 @@ describe(`real Pyodide ${PYODIDE_VERSION}`, () => {
     it.each(exercises.flatMap((e) => e.wrong.map((w, i) => [`${e.id}#${i}`, e, w] as const)))('%s', (_id, e, w) => {
       const r = grade(w, e);
       expect(r.passed).toBeLessThan(r.total);
+    });
+  });
+
+  describe('every coding problem passes the corpus gate (reference passes, starter and wrong fail, examples execute)', () => {
+    const gradeSpec = (source: string, spec: GradeSpec): GradeReport => {
+      const fn = py.globals.get('pil_grade');
+      const res = JSON.parse(fn(source, JSON.stringify(spec)));
+      fn.destroy();
+      return res;
+    };
+    it.each(codingProblems.map((p) => [p.id, p] as const))('%s', (_id, p) => {
+      expect(gateProblem(p, gradeSpec).failures).toEqual([]);
     });
   });
 

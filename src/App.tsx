@@ -11,7 +11,7 @@ import { PlanPage } from './pages/Plan';
 import { ProblemsPage } from './pages/Problems';
 import { SetupPage } from './pages/Setup';
 import { TodayPage } from './pages/Today';
-import { runner, useStorageWarnings } from './state';
+import { runner, usePractice, useStorageWarnings } from './state';
 
 setCodingProblemIds(codingProblems.map((p) => p.id));
 
@@ -96,6 +96,8 @@ export function App() {
   }, [route.page]);
 
   const workspace = route.page === 'problem';
+  const { plan } = usePractice();
+  const inPlan = workspace && !!plan?.weeks.some((w) => w.items.some((i) => i.problemId === (route as { problemId: string }).problemId));
   const navLink = (n: NavItem, cls: string) => (
     <a key={n.page} href={href(n.to)} className={cls} aria-current={isActive(n, route.page) ? 'page' : undefined} data-testid={`nav-${n.page}`}>
       <Icon name={n.icon} size={20} />
@@ -121,6 +123,12 @@ export function App() {
       </aside>
       <header className="topbar">
         <Brand />
+        {workspace && (
+          <a className="btn btn-quiet ws-back" href={href(inPlan ? { page: 'plan' } : { page: 'problems' })} data-testid="ws-back">
+            <Icon name="chevronLeft" />
+            {inPlan ? 'Plan' : 'Problems'}
+          </a>
+        )}
         <ThemeToggle compact />
       </header>
       <div className="frame">

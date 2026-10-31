@@ -1,7 +1,7 @@
 // Small shared controls. One button system lives in CSS (.btn + .btn-primary /
 // .btn-secondary / .btn-quiet / .btn-danger); these components cover the
 // patterns that need behaviour or consistent markup.
-import { useEffect, useRef, useState, type ReactNode } from 'react';
+import { useEffect, useRef, useSyncExternalStore, type ReactNode } from 'react';
 import type { ProblemDifficulty } from '../content/problem-schema';
 import { DIFFICULTY_LABEL } from '../content/problem-schema';
 import { store } from '../state';
@@ -151,23 +151,31 @@ export function applyTheme(t: ThemePref) {
   document.querySelector('meta[name="theme-color"]')?.setAttribute('content', dark ? '#0b0b0c' : '#fafafa');
 }
 
+// One theme state for the whole app (several toggles render at once).
+let themeNow: ThemePref | null = null;
+const themeListeners = new Set<() => void>();
+const getTheme = (): ThemePref => (themeNow ??= store.read('theme', isTheme) ?? 'system');
+function setThemePref(t: ThemePref) {
+  themeNow = t;
+  store.write('theme', t);
+  applyTheme(t);
+  for (const l of themeListeners) l();
+}
+if (typeof window !== 'undefined') {
+  // Follow OS changes only while the choice is "system".
+  window.matchMedia?.('(prefers-color-scheme: dark)').addEventListener?.('change', () => getTheme() === 'system' && applyTheme('system'));
+}
+
 export function useTheme(): [ThemePref, (t: ThemePref) => void] {
-  const [theme, setTheme] = useState<ThemePref>(() => store.read('theme', isTheme) ?? 'system');
-  useEffect(() => {
-    applyTheme(theme);
-    if (theme !== 'system') return;
-    const mq = window.matchMedia?.('(prefers-color-scheme: dark)');
-    const on = () => applyTheme('system');
-    mq?.addEventListener?.('change', on);
-    return () => mq?.removeEventListener?.('change', on);
-  }, [theme]);
-  return [
-    theme,
-    (t) => {
-      store.write('theme', t);
-      setTheme(t);
+  const theme = useSyncExternalStore(
+    (fn) => {
+      themeListeners.add(fn);
+      return () => themeListeners.delete(fn);
     },
-  ];
+    getTheme,
+  );
+  useEffect(() => applyTheme(theme), [theme]);
+  return [theme, setThemePref];
 }
 
 export function ThemeToggle({ compact = false }: { compact?: boolean }) {

@@ -28,7 +28,7 @@ export function SetupPage() {
   const effective: Prefs = useMemo(() => ({ ...prefs, patterns: focusAll ? 'all' : prefs.patterns }), [prefs, focusAll]);
   const valid = effective.difficulties.length > 0 && (effective.patterns === 'all' || effective.patterns.length > 0);
   const preview = useMemo(() => (valid ? makePlan(effective, null) : null), [effective, valid]);
-  const previewCount = preview ? preview.weeks.reduce((t, w) => t + w.items.length, 0) : 0;
+  const previewCount = preview ? preview.weeks.reduce((t, w) => t + w.items.filter((i) => i.kind === 'problem' && i.lane === 'new').length, 0) : 0;
 
   const set = (patch: Partial<Prefs>, advance = false) => {
     setPrefs((x) => ({ ...x, ...patch }));
@@ -233,7 +233,7 @@ export function SetupPage() {
         <p className="setup-summary" aria-live="polite" data-testid="setup-summary">
           {preview ? (
             <>
-              <strong className="tabular">{previewCount}</strong> {previewCount === 1 ? 'item' : 'items'} over {prefs.weeks} {prefs.weeks === 1 ? 'week' : 'weeks'} · ends {formatDay(todayDay() + prefs.weeks * 7 - 1)}
+              <strong className="tabular">{previewCount}</strong> {previewCount === 1 ? 'problem' : 'problems'} over {prefs.weeks} {prefs.weeks === 1 ? 'week' : 'weeks'} · ends {formatDay(todayDay() + prefs.weeks * 7 - 1)}
               {preview.shortfall && preview.shortfall.freeMinutes > 0 && <span className="muted"> · fewer problems than your time allows</span>}
             </>
           ) : (

@@ -35,7 +35,7 @@ light and dark are two token blocks. Dark follows `prefers-color-scheme` unless 
 | `--gray-800` | tertiary text | `#6c6c75` | `#8f8f99` |
 | `--gray-900` | secondary text | `#5b5b63` | `#a6a6af` |
 | `--gray-1000` | primary text | `#18181b` | `#ededf0` |
-| `--accent` | primary button, current nav icon, focus ring, current tick | `#3e63dd` | `#4b6fe6` |
+| `--accent` | primary button, current nav icon, focus ring, current tick | `#3e63dd` (hover `#3358d4`) | `#4467e0` (hover `#3a5bd0`; white text ≥ 4.9:1) |
 | `--accent-text` / `--accent-subtle` | links / selected fills | `#3451c2` / `#edf2fe` | `#9db1ff` / `#17203d` |
 | `--pass*` | pass, solved, Easy | `#1f7a4d` on `#e9f6ee`, solid `#30a46c` | `#4cc38a` on `#10251b` |
 | `--fail*` | fail, Hard, destructive | `#c62a2f` on `#fdeded`, solid `#e5484d` | `#ff8f8a` on `#2f1214` |

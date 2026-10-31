@@ -457,6 +457,17 @@ function Workspace({ problem: e }: { problem: CodingProblem }) {
           </button>
         </>
       )}
+      {wide && (
+        <button
+          type="button"
+          className="btn btn-quiet hints-jump"
+          onClick={() => document.getElementById('hints-h')?.scrollIntoView({ behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth', block: 'start' })}
+          data-testid="jump-hints"
+        >
+          <Icon name="hint" />
+          Hints
+        </button>
+      )}
       {!wide && (
         <button type="button" className="btn btn-quiet btn-icon" onClick={() => setHelp(true)} aria-haspopup="dialog" data-testid="open-help">
           <Icon name="hint" />
@@ -517,7 +528,20 @@ function Workspace({ problem: e }: { problem: CodingProblem }) {
       </div>
       <div className="ws-dock">
         {actions}
-        <div className="ws-tabs" role="tablist" aria-label="Workspace">
+        <div
+          className="ws-tabs"
+          role="tablist"
+          aria-label="Workspace"
+          onKeyDown={(k) => {
+            const ids = TABS.map((t) => t.id);
+            const i = ids.indexOf(tab);
+            const j = k.key === 'ArrowRight' ? (i + 1) % 3 : k.key === 'ArrowLeft' ? (i + 2) % 3 : k.key === 'Home' ? 0 : k.key === 'End' ? 2 : -1;
+            if (j < 0) return;
+            k.preventDefault();
+            setTab(ids[j]);
+            document.getElementById(`tab-${ids[j]}`)?.focus();
+          }}
+        >
           {TABS.map((t) => (
             <button
               key={t.id}
@@ -525,6 +549,7 @@ function Workspace({ problem: e }: { problem: CodingProblem }) {
               role="tab"
               id={`tab-${t.id}`}
               aria-selected={tab === t.id}
+              tabIndex={tab === t.id ? 0 : -1}
               aria-controls={`panel-${t.id}`}
               className="ws-tab"
               onClick={() => setTab(t.id)}
@@ -560,9 +585,13 @@ function Splitter({ value, onChange }: { value: number; onChange: (v: number) =>
       document.body.classList.remove('is-resizing');
       el.removeEventListener('pointermove', move);
       el.removeEventListener('pointerup', up);
+      el.removeEventListener('pointercancel', up);
+      el.removeEventListener('lostpointercapture', up);
     };
     el.addEventListener('pointermove', move);
     el.addEventListener('pointerup', up);
+    el.addEventListener('pointercancel', up);
+    el.addEventListener('lostpointercapture', up);
   };
   return (
     <div

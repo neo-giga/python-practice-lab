@@ -7,7 +7,8 @@ const SOLUTION = `def first_present(values: list) -> object:
             return v
     return None`;
 
-test.describe('Practice (real Pyodide grading)', () => {
+// Fluency drills, reached through the legacy #/practice/<id> links (they redirect to #/fluency/<id>).
+test.describe('Fluency drills (real Pyodide grading)', () => {
   test('wrong output fails, correct passes, hints/solution, drafts and progress survive reload', async ({ page }, info) => {
     const w = watchErrors(page);
     await page.goto('#/practice/first-present');
@@ -94,14 +95,14 @@ test.describe('Practice (real Pyodide grading)', () => {
   });
 
   test('drafts are per drill and the list filter reflects solved state', async ({ page }) => {
-    await page.goto('#/practice/reverse-words');
-    await setEditor(page, 'def reverse_words(s):\n    return "draft-for-reverse-words"');
+    await page.goto('#/practice/digit-sum');
+    await setEditor(page, 'def digit_sum(n):\n    return "draft-for-digit-sum"');
     await page.waitForTimeout(600);
     await page.goto('#/practice/run-length');
-    expect(await editorText(page)).not.toContain('draft-for-reverse-words');
-    await page.goto('#/practice/reverse-words');
-    expect(await editorText(page)).toContain('draft-for-reverse-words');
-    await page.goto('#/practice?status=solved');
+    expect(await editorText(page)).not.toContain('draft-for-digit-sum');
+    await page.goto('#/practice/digit-sum');
+    expect(await editorText(page)).toContain('draft-for-digit-sum');
+    await page.goto('#/fluency?status=solved');
     await expect(page.getByText('No drills match this filter.').first()).toBeAttached();
   });
 

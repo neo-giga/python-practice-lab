@@ -18,11 +18,11 @@ test.describe('Drawer focus lifecycle', () => {
     await expect(page.locator('body')).toHaveClass(/no-scroll/);
 
     // Changing the filter navigates, which re-renders the page that owns the drawer.
-    const filter = drawer.getByTestId('status-filter');
+    const filter = drawer.getByTestId('status-filter').getByRole('radio', { name: 'Unsolved' });
     await filter.focus();
-    await filter.selectOption('unsolved');
+    await filter.click();
     await expect.poll(() => page.url()).toContain('status=unsolved');
-    await expect(filter).toHaveValue('unsolved');
+    await expect(filter).toHaveAttribute('aria-checked', 'true');
     await expect(filter).toBeFocused();
     await expect(page.locator('body')).toHaveClass(/no-scroll/);
 

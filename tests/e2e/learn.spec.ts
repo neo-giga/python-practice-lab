@@ -1,11 +1,11 @@
 import { expect, test } from '@playwright/test';
 import { expectNoHorizontalOverflow, isNarrow, shot, watchErrors } from './helpers';
 
-test.describe('Cheatsheet', () => {
+test.describe('Reference (was Cheatsheet)', () => {
   test('search, level/topic filters, empty state and shareable URLs', async ({ page }, info) => {
     const w = watchErrors(page);
     await page.goto('#/learn');
-    await expect(page.getByRole('heading', { level: 1, name: 'Cheatsheet' })).toBeVisible();
+    await expect(page.getByRole('heading', { level: 1, name: 'Reference' })).toBeVisible();
     await expect(page.getByTestId('result-count')).toHaveText(/Showing all \d+ recipes/);
     const total = await page.getByTestId('recipe').count();
     expect(total).toBeGreaterThanOrEqual(60);
@@ -30,12 +30,12 @@ test.describe('Cheatsheet', () => {
     await page.getByRole('link', { name: 'Clear filters' }).click();
     await expect(page.getByTestId('recipe')).toHaveCount(total);
 
-    await page.getByTestId('level-filter').selectOption('advanced');
+    await page.getByTestId('level-filter').getByRole('radio', { name: 'Advanced' }).click();
     await expect.poll(() => page.url()).toContain('level=advanced');
-    const advanced = await page.getByTestId('recipe').count();
-    expect(advanced).toBeGreaterThan(0);
-    expect(advanced).toBeLessThan(total);
-    await page.getByTestId('level-filter').selectOption('');
+    await expect.poll(() => page.getByTestId('recipe').count()).toBeLessThan(total);
+    expect(await page.getByTestId('recipe').count()).toBeGreaterThan(0);
+    await page.getByTestId('level-filter').getByRole('radio', { name: 'All levels' }).click();
+    await expect(page.getByTestId('recipe')).toHaveCount(total);
 
     // Topic filter: sidebar on desktop, accessible drawer on narrow screens.
     if (isNarrow(info)) {

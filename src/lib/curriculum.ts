@@ -1,5 +1,5 @@
 // Derived lookups over the canonical content.
-import { exercises, recipes, topics } from '../content/index';
+import { codingProblems, exercises, recipes, topics } from '../content/index';
 import type { Exercise } from '../content/schema';
 import { solveState, type ProgressState } from './progress';
 
@@ -8,6 +8,12 @@ export const recipeById = new Map(recipes.map((r) => [r.id, r]));
 export const exerciseById = new Map(exercises.map((e) => [e.id, e]));
 
 export const exercisesForRecipe = (recipeId: string) => exercises.filter((e) => e.recipeIds.includes(recipeId));
+
+/** Coding problems and fluency drills that practise a recipe, with their links. */
+export const practiceForRecipe = (recipeId: string) => [
+  ...codingProblems.filter((p) => p.recipeIds.includes(recipeId)).map((p) => ({ id: p.id, version: p.version, title: p.title, href: `#/p/${p.id}` })),
+  ...exercisesForRecipe(recipeId).map((e) => ({ id: e.id, version: e.version, title: e.title, href: `#/fluency/${e.id}` })),
+];
 
 export function isDone(p: ProgressState, e: Exercise) {
   const s = solveState(p.exercises[e.id], e.version);
@@ -31,7 +37,7 @@ export function nextDrill(p: ProgressState, afterId?: string): Exercise | null {
   return ordered.find((e) => !isDone(p, e) && e.id !== afterId) ?? null;
 }
 
-export function describeComparison(e: Exercise): string {
+export function describeComparison(e: { grading: Exercise['grading'] | Omit<import('../runtime/protocol').GradeSpec, 'cases'> }): string {
   const g = e.grading;
   const parts: string[] = [];
   if (g.kind === 'ops') parts.push('Each case constructs a fresh object and calls the listed methods in order; the list of return values is compared.');

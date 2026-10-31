@@ -27,7 +27,7 @@ test.describe('Playground runtime @runtime', () => {
 
     // Infinite loop: the UI stays responsive and Stop terminates the worker
     await setEditor(page, 'print("spinning", flush=True)\nwhile True:\n    pass');
-    await page.getByTestId('timeout-select').selectOption('30000');
+    await page.getByTestId('timeout-30000').click();
     await page.getByTestId('run').click();
     await expect(page.getByTestId('stop')).toBeVisible();
     await expect(page.getByTestId('stdout')).toHaveText('spinning'); // streamed before the loop
@@ -50,7 +50,7 @@ test.describe('Playground runtime @runtime', () => {
     await expect(page.getByTestId('run-summary')).toContainText('Stopped');
 
     // Execution timeout (2 s limit) is enforced by terminating the worker
-    await page.getByTestId('timeout-select').selectOption('2000');
+    await page.getByTestId('timeout-2000').click();
     await page.getByTestId('run').click();
     await expect(page.getByTestId('run-summary')).toHaveAttribute('data-status', 'timeout', { timeout: 30_000 });
     await expect(page.getByTestId('run-summary')).toContainText('Timed out');
@@ -67,7 +67,8 @@ test.describe('Playground runtime @runtime', () => {
 
   test('stdin box feeds input(); EOF is explained', async ({ page }) => {
     await page.goto('#/playground');
-    await page.getByTestId('example-select').selectOption('stdin');
+    await page.getByTestId('example-menu').locator('summary').click();
+    await page.getByTestId('example-stdin').click();
     await page.locator('details.stdin summary').click();
     await page.getByTestId('stdin').fill('3\n4 5 6');
     await page.getByTestId('run').click();
@@ -80,7 +81,7 @@ test.describe('Playground runtime @runtime', () => {
   test('output floods are capped at 64 KiB and the tab stays usable', async ({ page }) => {
     await page.goto('#/playground');
     await setEditor(page, 'for i in range(200000):\n    print("line", i)\nprint("x" * 300000, end="")');
-    await page.getByTestId('timeout-select').selectOption('10000');
+    await page.getByTestId('timeout-10000').click();
     await page.getByTestId('run').click();
     await expect(page.getByTestId('run-summary')).toHaveAttribute('data-status', /ok|timeout/, { timeout: 90_000 });
     await expect(page.getByText('Output truncated at 64 KiB.')).toBeVisible();
@@ -110,7 +111,7 @@ test.describe('Playground runtime @runtime', () => {
   // Edit code, stdin and time limit, then leave within the 300 ms save debounce.
   const KEY = 'pil:v1:playground';
   const editAll = async (page: Page, code: string, stdin: string, timeout: string) => {
-    await page.getByTestId('timeout-select').selectOption(timeout);
+    await page.getByTestId(`timeout-${timeout}`).click();
     await page.getByTestId('stdin').fill(stdin);
     await page.locator('[data-testid=editor] .cm-content').click();
     await page.keyboard.press('ControlOrMeta+A');
@@ -120,7 +121,8 @@ test.describe('Playground runtime @runtime', () => {
     await expect(page.getByRole('heading', { level: 1, name: 'Playground' })).toBeVisible();
     await expect.poll(() => editorText(page)).toBe(code);
     await expect(page.getByTestId('stdin')).toHaveValue(stdin);
-    await expect(page.getByTestId('timeout-select')).toHaveValue(timeout);
+    await expect(page.getByTestId('timeout-select')).toHaveAttribute('data-value', timeout);
+    await expect(page.getByTestId(`timeout-${timeout}`)).toHaveAttribute('aria-checked', 'true');
   };
 
   test('latest edits survive leaving the Playground immediately (no debounce wait)', async ({ page }) => {
@@ -138,7 +140,7 @@ test.describe('Playground runtime @runtime', () => {
       return v;
     }, KEY);
     expect(before, 'navigation happened inside the debounce window').toContain('saved before');
-    await expect(page.getByRole('heading', { level: 1, name: 'Cheatsheet' })).toBeVisible();
+    await expect(page.getByRole('heading', { level: 1, name: 'Reference' })).toBeVisible();
     await page.goto('#/playground');
     await expectRestored(page, 'print("edited just now")', 'new line', '10000');
 

@@ -11,18 +11,20 @@ interface Props {
   value: string;
   onChange: (value: string) => void;
   onRun?: () => void;
+  /** Ctrl/⌘ + Shift + Enter (coding problems: Submit). */
+  onSubmit?: () => void;
   readOnly?: boolean;
   label: string;
   minLines?: number;
   testId?: string;
 }
 
-export function CodeEditor({ value, onChange, onRun, readOnly = false, label, minLines = 10, testId }: Props) {
+export function CodeEditor({ value, onChange, onRun, onSubmit, readOnly = false, label, minLines = 10, testId }: Props) {
   const host = useRef<HTMLDivElement>(null);
   const view = useRef<EditorView | null>(null);
   const ro = useRef(new Compartment());
-  const cb = useRef({ onChange, onRun });
-  cb.current = { onChange, onRun };
+  const cb = useRef({ onChange, onRun, onSubmit });
+  cb.current = { onChange, onRun, onSubmit };
 
   useEffect(() => {
     const v = new EditorView({
@@ -32,6 +34,13 @@ export function CodeEditor({ value, onChange, onRun, readOnly = false, label, mi
         extensions: [
           Prec.highest(
             keymap.of([
+              {
+                key: 'Mod-Shift-Enter',
+                run: () => {
+                  (cb.current.onSubmit ?? cb.current.onRun)?.();
+                  return true;
+                },
+              },
               {
                 key: 'Mod-Enter',
                 run: () => {

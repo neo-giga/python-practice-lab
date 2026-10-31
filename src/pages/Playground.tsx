@@ -1,4 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
+import { Icon } from '../components/Icon';
+import { radioKeys } from '../components/ui';
 import { CodeEditor } from '../components/CodeEditor';
 import { RunSummary, StreamOutput } from '../components/RunOutput';
 import { RuntimeStatus } from '../components/RuntimeStatus';
@@ -179,7 +181,7 @@ export function PlaygroundPage({ route }: { route: PlaygroundRoute }) {
           Loaded {previous.from}.{' '}
           <button
             type="button"
-            className="linklike"
+            className="link-btn"
             onClick={() => {
               setSource(previous.source);
               setPrevious(null);
@@ -189,43 +191,60 @@ export function PlaygroundPage({ route }: { route: PlaygroundRoute }) {
           </button>
         </p>
       )}
+      <div className="pg-tools">
+        <details className="menu" data-testid="example-menu">
+          <summary className="btn btn-secondary" aria-disabled={running || undefined}>
+            <Icon name="doc" />
+            Load an example
+            <Icon name="chevronDown" size={16} />
+          </summary>
+          <div className="menu-list" role="list">
+            {EXAMPLES.map((x) => (
+              <button
+                key={x.id}
+                type="button"
+                className="menu-item"
+                disabled={running}
+                data-testid={`example-${x.id}`}
+                onClick={(ev) => {
+                  loadExample(x.id);
+                  (ev.currentTarget.closest('details') as HTMLDetailsElement).open = false;
+                }}
+              >
+                {x.title}
+              </button>
+            ))}
+          </div>
+        </details>
+        <div className="pg-limit">
+          <span className="muted small" id="tl-label">
+            Time limit
+          </span>
+          <div className="segmented" role="radiogroup" aria-labelledby="tl-label" data-testid="timeout-select" data-value={timeoutMs} onKeyDown={running ? undefined : radioKeys(TIMEOUTS, timeoutMs, setTimeoutMs)}>
+            {TIMEOUTS.map((t) => (
+              <button key={t} type="button" role="radio" aria-checked={t === timeoutMs} tabIndex={t === timeoutMs ? 0 : -1} className={t === timeoutMs ? 'is-on' : ''} disabled={running} onClick={() => setTimeoutMs(t)} data-testid={`timeout-${t}`}>
+                {t / 1000} s
+              </button>
+            ))}
+          </div>
+        </div>
+      </div>
       <div className="split">
         <section className="pane" aria-label="Code">
-          <div className="pane-tools">
-            <label className="select">
-              <span className="small muted">Example</span>
-              <select value="" onChange={(e) => loadExample(e.target.value)} disabled={running} data-testid="example-select">
-                <option value="">Load an example…</option>
-                {EXAMPLES.map((x) => (
-                  <option key={x.id} value={x.id}>
-                    {x.title}
-                  </option>
-                ))}
-              </select>
-            </label>
-            <label className="select">
-              <span className="small muted">Time limit</span>
-              <select value={timeoutMs} onChange={(e) => setTimeoutMs(Number(e.target.value))} disabled={running} data-testid="timeout-select">
-                {TIMEOUTS.map((t) => (
-                  <option key={t} value={t}>
-                    {t / 1000} s
-                  </option>
-                ))}
-              </select>
-            </label>
-          </div>
           <CodeEditor value={source} onChange={setSource} onRun={run} readOnly={running} label="Playground code editor" minLines={14} testId="editor" />
           <div className="run-bar">
             {running ? (
-              <button type="button" className="btn danger" onClick={() => runner.stop()} data-testid="stop">
+              <button type="button" className="btn btn-danger" onClick={() => runner.stop()} data-testid="stop">
+                <Icon name="stop" />
                 Stop
               </button>
             ) : (
-              <button type="button" className="btn primary" onClick={run} disabled={otherBusy} data-testid="run">
+              <button type="button" className="btn btn-primary" onClick={run} disabled={otherBusy} data-testid="run">
+                <Icon name="play" />
                 Run
               </button>
             )}
-            <button type="button" className="btn ghost" onClick={reset} disabled={running}>
+            <button type="button" className="btn btn-quiet" onClick={reset} disabled={running}>
               Reset
             </button>
             <span className="kbd-hint muted small">Ctrl/⌘ + Enter runs.</span>
@@ -235,6 +254,9 @@ export function PlaygroundPage({ route }: { route: PlaygroundRoute }) {
             <label>
               <span className="visually-hidden">Standard input, one line per input() call</span>
               <textarea
+                spellCheck={false}
+                autoCapitalize="off"
+                autoCorrect="off"
                 value={stdin}
                 onChange={(e) => setStdin(e.target.value)}
                 rows={3}
@@ -250,7 +272,14 @@ export function PlaygroundPage({ route }: { route: PlaygroundRoute }) {
           <div aria-live="polite" data-testid="results">
             {result && <RunSummary result={result} stale={ranHash !== null && ranHash !== sourceHash(source)} />}
           </div>
-          {shown ? <StreamOutput stdout={shown.stdout} stderr={shown.stderr} truncated={result?.truncated ?? false} /> : <p className="muted">Press Run to see output here.</p>}
+          {shown ? (
+            <StreamOutput stdout={shown.stdout} stderr={shown.stderr} truncated={result?.truncated ?? false} />
+          ) : (
+            <div className="output-empty-state">
+              <p>Output appears here.</p>
+              <p className="muted small">stdout, stderr and tracebacks, as a terminal would show them.</p>
+            </div>
+          )}
           <p className="muted small">
             Output is capped at 64 KiB per run. The worker is stopped after the time limit. <a href={href({ page: 'about' })}>Limits and safety</a>
           </p>

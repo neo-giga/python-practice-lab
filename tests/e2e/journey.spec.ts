@@ -253,6 +253,23 @@ test.describe('Problem grading and persistence @runtime', () => {
   });
 });
 
+test.describe('Runtime download', () => {
+  test('nothing from the Python runtime is requested before the first Run', async ({ page }) => {
+    const pyodide: string[] = [];
+    page.on('request', (r) => r.url().includes('/pyodide/') && pyodide.push(r.url()));
+    await onboard(page, ['stack']);
+    for (const r of ['#/', '#/plan', '#/problems', '#/p/postfix-eval', '#/learn', '#/fluency/first-present', '#/playground']) {
+      await page.goto(r);
+      await page.locator('main h1:visible').first().waitFor();
+    }
+    expect(pyodide).toEqual([]);
+    await page.goto('#/p/postfix-eval');
+    await page.getByTestId('run-examples').click();
+    await expect(page.getByTestId('run-summary')).toBeVisible({ timeout: 90_000 });
+    expect(pyodide.length).toBeGreaterThan(0);
+  });
+});
+
 test.describe('Layout', () => {
   test.beforeEach(({}, info) => test.skip(info.project.name !== 'desktop-1440', 'one project resizes through every width'));
   test('no horizontal overflow at 320, 375, 768, 1024 and 1440 on every page', async ({ page }) => {

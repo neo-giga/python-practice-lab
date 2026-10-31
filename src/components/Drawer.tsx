@@ -1,9 +1,15 @@
-import { useEffect, useRef, type ReactNode } from 'react';
+import { useEffect, useLayoutEffect, useRef, type ReactNode } from 'react';
 
 /** Modal side drawer for narrow screens: focus moves in, Escape closes, focus returns. */
 export function Drawer({ open, onClose, title, children }: { open: boolean; onClose: () => void; title: string; children: ReactNode }) {
   const panel = useRef<HTMLDivElement>(null);
   const opener = useRef<Element | null>(null);
+  // Parents pass a new onClose on every render; read the latest one from a ref so
+  // the setup below runs only when the drawer actually opens or closes.
+  const onCloseRef = useRef(onClose);
+  useLayoutEffect(() => {
+    onCloseRef.current = onClose;
+  });
 
   useEffect(() => {
     if (!open) return;
@@ -14,7 +20,7 @@ export function Drawer({ open, onClose, title, children }: { open: boolean; onCl
     const onKey = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
         e.preventDefault();
-        onClose();
+        onCloseRef.current();
       } else if (e.key === 'Tab') {
         const items = [...el.querySelectorAll<HTMLElement>('button, a[href], input, select')].filter((x) => !x.hasAttribute('disabled'));
         if (!items.length) return;
@@ -35,7 +41,7 @@ export function Drawer({ open, onClose, title, children }: { open: boolean; onCl
       document.body.classList.remove('no-scroll');
       (opener.current as HTMLElement | null)?.focus?.();
     };
-  }, [open, onClose]);
+  }, [open]);
 
   if (!open) return null;
   return (

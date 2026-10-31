@@ -2,6 +2,8 @@
 
 Build Python 3 *fluency* for coding interviews: look up an idiom, run it, solve a small drill, get real feedback, and revisit weak topics. Everything runs in the browser, with real CPython compiled to WebAssembly ([Pyodide](https://pyodide.org/)). You do not need to install Python, sign in, or use a backend.
 
+**Website: <https://neo-giga.github.io/python-interview-lab/>** · [Cheatsheet](https://neo-giga.github.io/python-interview-lab/#/learn) · [Practice](https://neo-giga.github.io/python-interview-lab/#/practice) · [Playground](https://neo-giga.github.io/python-interview-lab/#/playground)
+
 ![Cheatsheet on a desktop](docs/screenshots/desktop-1440-learn.png)
 
 | Practice on a desktop (graded run) | Practice on a tablet | Cheatsheet on a phone | Playground on a phone |

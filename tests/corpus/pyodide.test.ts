@@ -100,6 +100,38 @@ describe(`real Pyodide ${PYODIDE_VERSION}`, () => {
     expect(hardcoded.passed).toBeLessThan(hardcoded.total);
   });
 
+  it('two-sum-indexes accepts a valid reverse-scanning solution', () => {
+    const e = exercises.find((x) => x.id === 'two-sum-indexes')!;
+    const reverse = 'def pair_indexes(nums, target):\n    seen = {}\n    for i in range(len(nums) - 1, -1, -1):\n        x = nums[i]\n        if target - x in seen:\n            return [i, seen[target - x]]\n        seen[x] = i\n    return []\n';
+    const r = grade(reverse, e);
+    expect(failing(r)).toEqual([]);
+    expect(r.passed).toBe(e.cases.length);
+  });
+
+  it('invert-mapping checks first-seen key order; a sorted-keys answer is rejected', () => {
+    const e = exercises.find((x) => x.id === 'invert-mapping')!;
+    const sortedKeys = e.solution.replace('return teams', 'return dict(sorted(teams.items()))');
+    expect(sortedKeys).not.toBe(e.solution);
+    const r = grade(sortedKeys, e);
+    expect(r.passed).toBeLessThan(r.total);
+    expect(r.cases.find((c) => !c.passed)!.error).toMatch(/order/i);
+  });
+
+  it('dict key order is compared only in the opt-in ordered mode', () => {
+    const same = (a: string, b: string, mode: string) => py.runPython(`same(${a}, ${b}, ${JSON.stringify(mode)})`) as boolean;
+    // ordinary exact equality stays order-insensitive for dicts, type-strict and list-order-sensitive
+    expect(same('{"a": 1, "b": 2}', '{"b": 2, "a": 1}', 'exact')).toBe(true);
+    expect(same('{"a": [1, 2]}', '{"a": [2, 1]}', 'exact')).toBe(false);
+    expect(same('{"a": True}', '{"a": 1}', 'exact')).toBe(false);
+    // ordered mode: key order matters (recursively), values, types and list order still strict
+    expect(same('{"a": 1, "b": 2}', '{"a": 1, "b": 2}', 'exact_ordered')).toBe(true);
+    expect(same('{"a": 1, "b": 2}', '{"b": 2, "a": 1}', 'exact_ordered')).toBe(false);
+    expect(same('[{"x": 1, "y": 2}]', '[{"y": 2, "x": 1}]', 'exact_ordered')).toBe(false);
+    expect(same('{"a": ["p", "q"]}', '{"a": ["q", "p"]}', 'exact_ordered')).toBe(false);
+    expect(same('{"a": (1,)}', '{"a": [1]}', 'exact_ordered')).toBe(false);
+    expect(same('__import__("collections").OrderedDict(a=1)', '{"a": 1}', 'exact_ordered')).toBe(false);
+  });
+
   it('each case runs in a fresh module scope (no leaked globals or caches)', () => {
     const e = exercises.find((x) => x.id === 'digit-sum')!;
     // Correct only if `calls` starts empty for every case, i.e. module state does not leak.

@@ -1,6 +1,6 @@
 import { useRef, useState } from 'react';
 import { exercises, recipes, topics } from '../content/index';
-import { emptyProgress, isDraft, isProgressState } from '../lib/progress';
+import { emptyProgress, isDraft, isProgressState, type Draft, type ProgressState } from '../lib/progress';
 import { progress, store } from '../state';
 import { PYODIDE_VERSION, EXPECTED_PYTHON_VERSION } from '../runtime/versions';
 import { DEFAULT_EXEC_TIMEOUT_MS } from '../runtime/runner';
@@ -41,23 +41,34 @@ export function AboutPage() {
   };
 
   const importData = async (file: File) => {
+    // Validate and stage the whole backup before touching storage.
+    let staged: { progress: ProgressState; drafts: [string, Draft][] };
     try {
       const data = JSON.parse(await file.text()) as Backup;
       if (data?.app !== 'python-interview-lab' || data.schema !== 1 || !isProgressState(data.progress)) throw new Error('not a Python Interview Lab backup');
-      if (!window.confirm('Replace your current progress and drafts with this backup?')) return;
+      const drafts = data.drafts ?? {};
+      if (typeof drafts !== 'object' || drafts === null || Array.isArray(drafts)) throw new Error('drafts are not a list of drill drafts');
       const known = new Set(exercises.map((e) => e.id));
-      let n = 0;
-      for (const [id, d] of Object.entries(data.drafts ?? {})) {
-        if (known.has(id) && isDraft(d)) {
-          progress.writeDraft(id, d.source, d.exerciseVersion);
-          n++;
-        }
+      const entries: [string, Draft][] = [];
+      for (const [id, d] of Object.entries(drafts)) {
+        if (!known.has(id)) continue; // a drill this version of the site does not have
+        if (!isDraft(d)) throw new Error(`the draft for "${id}" is malformed`);
+        entries.push([id, d]);
       }
-      progress.replaceAll(data.progress);
-      setMessage(`Imported progress for ${Object.keys(data.progress.exercises).length} drills and ${n} drafts. Imported code is never run automatically.`);
+      staged = { progress: data.progress, drafts: entries };
     } catch (err) {
       setMessage(`Import failed: ${err instanceof Error ? err.message : String(err)}. Nothing was changed.`);
+      return;
     }
+    if (!window.confirm('Replace your current progress and drill drafts with this backup? Drill drafts that are not in the backup are deleted. Playground code is kept.')) {
+      setMessage('Import cancelled. Nothing was changed.');
+      return;
+    }
+    const keep = new Set(staged.drafts.map(([id]) => id));
+    for (const e of exercises) if (!keep.has(e.id)) progress.removeDraft(e.id);
+    for (const [id, d] of staged.drafts) progress.writeDraft(id, d.source, d.exerciseVersion);
+    progress.replaceAll(staged.progress);
+    setMessage(`Imported progress for ${Object.keys(staged.progress.exercises).length} drills and ${staged.drafts.length} drafts. Imported code is never run automatically.`);
   };
 
   const clearAll = () => {

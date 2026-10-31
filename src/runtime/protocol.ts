@@ -4,7 +4,7 @@
 export interface GradeSpec {
   entry: string;
   kind: 'function' | 'ops' | 'calls';
-  compare: 'exact' | 'unordered' | 'unordered_nested' | 'approx';
+  compare: 'exact' | 'exact_ordered' | 'unordered' | 'unordered_nested' | 'approx';
   check?: 'return' | 'mutated_arg0';
   transform?: 'linked_list' | 'tree';
   cases: { args: string; expected: string }[];

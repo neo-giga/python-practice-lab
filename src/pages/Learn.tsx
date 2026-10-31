@@ -48,7 +48,12 @@ export function LearnPage({ route }: { route: LearnRoute }) {
       }
     }
     if ((route.q ?? '') === query) return;
-    const t = setTimeout(() => navigate({ ...route, q: query || undefined, recipeId: undefined }, true), 250);
+    // The router may learn about a newer navigation after this timer fires (busy
+    // main thread), so check the URL itself: write only if it is still this view's.
+    const from = location.hash;
+    const t = setTimeout(() => {
+      if (location.hash === from) navigate({ ...route, q: query || undefined, recipeId: undefined }, true);
+    }, 250);
     return () => clearTimeout(t);
   }, [query, route]);
 

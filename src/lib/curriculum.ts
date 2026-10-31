@@ -44,6 +44,9 @@ export function describeComparison(e: Exercise): string {
     case 'exact':
       parts.push('Values are compared with Python ==, and types must match exactly (True is not 1, a tuple is not a list).');
       break;
+    case 'exact_ordered':
+      parts.push('Values are compared with Python ==, types must match exactly, and dict keys must also be in the expected order.');
+      break;
     case 'unordered':
       parts.push('The top-level list may be in any order (duplicates still count); element types must match.');
       break;

@@ -82,8 +82,28 @@ export function PlaygroundPage({ route }: { route: PlaygroundRoute }) {
   sourceRef.current = source;
 
   // Persist (debounced). Storage failures are reported by the store, never thrown.
+  // Leaving the page (unmount) or the tab (pagehide) saves the latest values at once.
+  const latest = useRef<Saved>({ source, stdin, timeoutMs });
+  latest.current = { source, stdin, timeoutMs };
+  const pending = useRef(false);
   useEffect(() => {
-    const t = setTimeout(() => store.write('playground', { source, stdin, timeoutMs } satisfies Saved), 300);
+    const flush = () => {
+      if (!pending.current) return;
+      pending.current = false;
+      store.write('playground', latest.current);
+    };
+    window.addEventListener('pagehide', flush);
+    return () => {
+      window.removeEventListener('pagehide', flush);
+      flush();
+    };
+  }, []);
+  useEffect(() => {
+    pending.current = true;
+    const t = setTimeout(() => {
+      pending.current = false;
+      store.write('playground', { source, stdin, timeoutMs } satisfies Saved);
+    }, 300);
     return () => clearTimeout(t);
   }, [source, stdin, timeoutMs]);
 

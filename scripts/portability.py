@@ -36,10 +36,26 @@ def version_tuple(v):
     return tuple(int(p) for p in v.split("."))
 
 
+# Comparison semantics the curriculum relies on, checked under native CPython.
+SAME_CHECKS = [
+    ({"a": 1, "b": 2}, {"b": 2, "a": 1}, "exact", True),  # plain dict equality ignores key order
+    ({"a": [1, 2]}, {"a": [2, 1]}, "exact", False),
+    ({"a": True}, {"a": 1}, "exact", False),
+    ({"a": 1, "b": 2}, {"a": 1, "b": 2}, "exact_ordered", True),
+    ({"a": 1, "b": 2}, {"b": 2, "a": 1}, "exact_ordered", False),  # opt-in: key order matters
+    ([{"x": 1, "y": 2}], [{"y": 2, "x": 1}], "exact_ordered", False),
+    ({"a": ["p", "q"]}, {"a": ["q", "p"]}, "exact_ordered", False),
+    ({"a": (1,)}, {"a": [1]}, "exact_ordered", False),
+]
+
+
 def main(path):
     data = json.load(open(path))
     running = sys.version_info[:2]
     fails, skips, passes = [], [], 0
+    for actual, expected, mode, want in SAME_CHECKS:
+        if harness.same(actual, expected, mode) is not want:
+            fails.append(f"harness.same({actual!r}, {expected!r}, {mode!r}) should be {want}")
     for r in data["recipes"]:
         if r.get("minPython") and version_tuple(r["minPython"]) > running:
             skips.append(f"recipe {r['id']} (needs {r['minPython']})")

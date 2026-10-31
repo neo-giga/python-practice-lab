@@ -1,6 +1,6 @@
 // @runtime tests run in Chromium (3 viewports), Firefox and WebKit, all against
 // the real self-hosted Pyodide runtime. Nothing here is mocked.
-import { expect, test } from '@playwright/test';
+import { expect, test, type Page } from '@playwright/test';
 import { editorText, expectNoHorizontalOverflow, setEditor, shot, watchErrors } from './helpers';
 
 test.describe('Playground runtime @runtime', () => {
@@ -104,6 +104,50 @@ test.describe('Playground runtime @runtime', () => {
     await expect(page.getByTestId('stdout')).toContainText("4 0 [('i', 4), ('s', 4)]");
     await page.getByRole('button', { name: 'Restore previous code' }).click();
     expect(await editorText(page)).toContain('my own scratch');
+    expect(w.errors).toEqual([]);
+  });
+
+  // Edit code, stdin and time limit, then leave within the 300 ms save debounce.
+  const KEY = 'pil:v1:playground';
+  const editAll = async (page: Page, code: string, stdin: string, timeout: string) => {
+    await page.getByTestId('timeout-select').selectOption(timeout);
+    await page.getByTestId('stdin').fill(stdin);
+    await page.locator('[data-testid=editor] .cm-content').click();
+    await page.keyboard.press('ControlOrMeta+A');
+    await page.keyboard.insertText(code);
+  };
+  const expectRestored = async (page: Page, code: string, stdin: string, timeout: string) => {
+    await expect(page.getByRole('heading', { level: 1, name: 'Playground' })).toBeVisible();
+    await expect.poll(() => editorText(page)).toBe(code);
+    await expect(page.getByTestId('stdin')).toHaveValue(stdin);
+    await expect(page.getByTestId('timeout-select')).toHaveValue(timeout);
+  };
+
+  test('latest edits survive leaving the Playground immediately (no debounce wait)', async ({ page }) => {
+    const w = watchErrors(page);
+    await page.goto('#/playground');
+    await page.locator('details.stdin summary').click();
+    await editAll(page, 'print("saved before")', 'old line', '2000');
+    await expect.poll(() => page.evaluate((k) => localStorage.getItem(k), KEY)).toContain('saved before');
+
+    await editAll(page, 'print("edited just now")', 'new line', '10000');
+    // Navigate in the same task that reads storage: the debounced save must not have run yet.
+    const before = await page.evaluate((k) => {
+      const v = localStorage.getItem(k);
+      location.hash = '#/learn';
+      return v;
+    }, KEY);
+    expect(before, 'navigation happened inside the debounce window').toContain('saved before');
+    await expect(page.getByRole('heading', { level: 1, name: 'Cheatsheet' })).toBeVisible();
+    await page.goto('#/playground');
+    await expectRestored(page, 'print("edited just now")', 'new line', '10000');
+
+    // Immediate reload (pagehide) inside the debounce window.
+    await editAll(page, 'print("before reload")', 'reload line', '30000');
+    const beforeReload = await page.evaluate((k) => localStorage.getItem(k), KEY);
+    expect(beforeReload, 'reload happened inside the debounce window').toContain('edited just now');
+    await page.reload();
+    await expectRestored(page, 'print("before reload")', 'reload line', '30000');
     expect(w.errors).toEqual([]);
   });
 });

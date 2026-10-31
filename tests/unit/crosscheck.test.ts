@@ -49,6 +49,16 @@ describe('independent cross-checks', () => {
     for (const c of ex('lis-length').cases) expect(Number(c.expected)).toBe(brute(JSON.parse(c.args)));
   });
 
+  it('two-sum-indexes: every fixture has exactly one index pair, and it is the expected one', () => {
+    for (const c of ex('two-sum-indexes').cases) {
+      const [nums, target] = JSON.parse(`[${c.args}]`) as [number[], number];
+      const pairs: [number, number][] = [];
+      for (let i = 0; i < nums.length; i++) for (let j = i + 1; j < nums.length; j++) if (nums[i] + nums[j] === target) pairs.push([i, j]);
+      expect(pairs, `${c.args} must have exactly one pair`).toHaveLength(1);
+      expect(pairs[0], c.args).toEqual(JSON.parse(c.expected));
+    }
+  });
+
   it('largest-concat agrees with trying every permutation', () => {
     const perms = (xs: string[]): string[][] => (xs.length <= 1 ? [xs] : xs.flatMap((x, i) => perms([...xs.slice(0, i), ...xs.slice(i + 1)]).map((p) => [x, ...p])));
     for (const c of ex('largest-concat').cases) {

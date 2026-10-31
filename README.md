@@ -27,7 +27,7 @@ The cheatsheet is also available as Markdown in [`docs/CHEATSHEET.md`](docs/CHEA
 
 ## Run it locally
 
-Requirements: Node.js ≥ 20.19 (tested with 26.8.1) and npm.
+Requirements: Node.js 22.12+, 24 or 26+ (the range the locked Vitest supports; tested with 26.8.1, CI uses 24) and npm.
 
 ```bash
 npm ci

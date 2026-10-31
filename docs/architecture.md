@@ -90,6 +90,7 @@ Every path goes through one `settle()` that runs at most once, clears the timer,
 - Arguments are written as Python literals and evaluated fresh for each case, which clones them. **Expected values are evaluated in a separate namespace**, so mutating an input cannot change the expectation.
 - Comparison happens **in Python, never via repr, stdout or JS conversion**:
   - `exact` (default): recursive and type-strict. `True` is not `1`, and `(1, 2)` is not `[1, 2]`; a type mismatch is reported as such.
+  - `exact_ordered`: `exact` plus dict key order (opt-in, used where the prompt promises an order; plain `exact` dict equality ignores key order).
   - `unordered`: a multiset over a top-level list.
   - `unordered_nested`: inner lists are unordered too.
   - `approx`: `math.isclose`, relative and absolute tolerance 1e-9 (available, currently unused).

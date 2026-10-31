@@ -468,7 +468,7 @@ export const syntaxExercises: Exercise[] = [
   // ------------------------------------------------------------- dicts-sets
   {
     id: 'two-sum-indexes',
-    version: 1,
+    version: 2,
     topicId: 'dicts-sets',
     title: 'Pair indexes with a value index',
     kind: 'pattern',
@@ -507,13 +507,13 @@ export const syntaxExercises: Exercise[] = [
       { args: '[5, 1, 3], 4', expected: '[1, 2]' },
       { args: '[3, 5, 1], 6', expected: '[1, 2]' },
       { args: '[3, 3], 6', expected: '[0, 1]' },
-      { args: '[-1, 5, -4, 8], 4', expected: '[0, 1]' },
+      { args: '[-1, 5, -4, 9], 4', expected: '[0, 1]' },
     ],
     recipeIds: ['dict-access', 'range-enumerate'],
   },
   {
     id: 'invert-mapping',
-    version: 1,
+    version: 2,
     topicId: 'dicts-sets',
     title: 'Invert a mapping into groups',
     kind: 'idiom',
@@ -545,9 +545,15 @@ export const syntaxExercises: Exercise[] = [
           for person, team in assignments.items():
               teams[team].append(person)
           return teams
+    `, py`
+      def invert(assignments: dict[str, str]) -> dict[str, list[str]]:
+          teams = {}
+          for person, team in assignments.items():
+              teams.setdefault(team, []).append(person)
+          return dict(sorted(teams.items()))
     `],
-    grading: fn('invert'),
-    comparison: 'Type-strict: a defaultdict is not accepted where a dict is required.',
+    grading: fn('invert', { compare: 'exact_ordered' }),
+    comparison: 'Type-strict: a defaultdict is not accepted where a dict is required. Team order is checked: sorting the keys fails.',
     cases: [
       { args: '{"ana": "red", "bo": "blue", "cy": "red"}', expected: '{"red": ["ana", "cy"], "blue": ["bo"]}' },
       { args: '{}', expected: '{}' },

@@ -194,6 +194,15 @@ def same(actual, expected, mode="exact"):
                 and all(same(a, e, "approx") for a, e in zip(actual, expected))
             )
         return same(actual, expected, "exact")
+    if mode == "exact_ordered":
+        # Opt-in: like exact, but dict key (insertion) order is part of the answer.
+        if type(actual) is not type(expected):
+            return False
+        if isinstance(expected, dict):
+            return list(actual) == list(expected) and all(same(actual[k], expected[k], mode) for k in expected)
+        if isinstance(expected, (list, tuple)):
+            return len(actual) == len(expected) and all(same(a, e, mode) for a, e in zip(actual, expected))
+        return same(actual, expected, "exact")
     if mode == "unordered":
         if type(actual) is not type(expected) or not isinstance(expected, list):
             return False
@@ -400,8 +409,10 @@ def pil_grade(source, spec_json):
             actual = transform(actual)
             row["actual"] = show(actual)
             row["passed"] = bool(same(actual, expected, mode))
-            if not row["passed"] and mode == "exact" and type(actual) is not type(expected):
+            if not row["passed"] and mode in ("exact", "exact_ordered") and type(actual) is not type(expected):
                 row["error"] = f"Type differs: expected {type(expected).__name__}, got {type(actual).__name__}"
+            elif not row["passed"] and mode == "exact_ordered" and same(actual, expected, "exact"):
+                row["error"] = "Same keys and values, but the dict key order differs"
         except BaseException as exc:  # noqa: BLE001
             row["error"] = format_user_error(exc)
         finally:

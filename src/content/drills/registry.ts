@@ -7,5 +7,16 @@
 export { exampleDrills } from './_examples';
 
 // --- Writer B (Tier 1 skills) ---
+export { loopsRangeDrills } from './b-loops-range';
+export { indexingLenDrills } from './b-indexing-len';
+export { assignSwapDrills } from './b-assign-swap';
+export { recursionHelpersDrills } from './b-recursion-helpers';
+export { whileLoopsDrills } from './b-while-loops';
+export { listBasicsDrills } from './b-list-basics';
+export { builtinsAggregateDrills } from './b-builtins-aggregate';
+export { enumerateZipDrills } from './b-enumerate-zip';
+export { comprehensionsDrills } from './b-comprehensions';
+export { intMathDrills } from './b-int-math';
+export { grids2dDrills } from './b-grids-2d';
 
 // --- Writer C (Tier 2-3 skills and traps) ---

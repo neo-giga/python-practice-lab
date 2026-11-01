@@ -235,4 +235,75 @@ export const dAlgoDfsDrills: SkillDrill[] = [
     ],
     provenance: 'original',
   },
+  {
+    id: 'dfs-count-components',
+    version: 1,
+    title: 'Write DFS: count connected components',
+    skills: ['algo-dfs', 'recursion-helpers'],
+    kind: 'write',
+    prompt: 'Nodes are `0 .. n-1`; `edges` is a list of undirected `[a, b]` pairs. Return the number of connected components. Start a DFS from every node not yet seen.',
+    signature: 'def count_components(n: int, edges: list[list[int]]) -> int',
+    starter: py`
+      def count_components(n: int, edges: list[list[int]]) -> int:
+          return n
+    `,
+    solution: py`
+      def count_components(n: int, edges: list[list[int]]) -> int:
+          graph = [[] for _ in range(n)]
+          for a, b in edges:
+              graph[a].append(b)
+              graph[b].append(a)
+          seen = set()
+          def dfs(node):
+              seen.add(node)
+              for nxt in graph[node]:
+                  if nxt not in seen:
+                      dfs(nxt)
+          parts = 0
+          for node in range(n):
+              if node not in seen:
+                  dfs(node)
+                  parts += 1
+          return parts
+    `,
+    why: 'Each DFS started from an unseen node marks exactly one whole component, so counting the starts counts the components.',
+    hints: ['Build an adjacency list in both directions.', 'Loop over all nodes; an unseen node starts a new DFS and a new component.'],
+    wrong: [
+      // Stores each edge in one direction only: b cannot reach a.
+      py`
+        def count_components(n: int, edges: list[list[int]]) -> int:
+            graph = [[] for _ in range(n)]
+            for a, b in edges:
+                graph[a].append(b)
+            seen = set()
+            def dfs(node):
+                seen.add(node)
+                for nxt in graph[node]:
+                    if nxt not in seen:
+                        dfs(nxt)
+            parts = 0
+            for node in range(n):
+                if node not in seen:
+                    dfs(node)
+                    parts += 1
+            return parts
+      `,
+      // n - len(edges) only holds when there are no cycles.
+      py`
+        def count_components(n: int, edges: list[list[int]]) -> int:
+            return n - len(edges)
+      `,
+    ],
+    grading: { entry: 'count_components', kind: 'function', compare: 'exact' },
+    cases: [
+      { args: '5, [[0, 1], [1, 2], [3, 4]]', expected: '2' },
+      { args: '3, [[2, 1], [1, 0]]', expected: '1' },
+      { args: '4, [[0, 1], [1, 2], [2, 3], [3, 0]]', expected: '1' },
+      { args: '3, []', expected: '3' },
+      { args: '1, []', expected: '1' },
+      { args: '0, []', expected: '0' },
+      { args: '6, [[0, 1], [2, 3], [4, 5], [1, 2]]', expected: '2' },
+    ],
+    provenance: 'original',
+  },
 ];

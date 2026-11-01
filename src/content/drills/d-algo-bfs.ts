@@ -241,4 +241,84 @@ export const dAlgoBfsDrills: SkillDrill[] = [
     ],
     provenance: 'original',
   },
+  {
+    id: 'bfs-multi-source-spread',
+    version: 1,
+    title: 'Apply BFS: water spreading from several sources',
+    skills: ['algo-bfs', 'grids-2d'],
+    kind: 'write',
+    prompt: '`grid` is a list of strings: `W` water, `.` dry soil, `#` rock. Each minute water spreads to the soil cells up, down, left and right of it. Return the minutes until all soil is wet, -1 if some never is, 0 if there is no soil.',
+    signature: 'def minutes_to_fill(grid: list[str]) -> int',
+    starter: py`
+      def minutes_to_fill(grid: list[str]) -> int:
+          return 0
+    `,
+    solution: py`
+      from collections import deque
+
+      def minutes_to_fill(grid: list[str]) -> int:
+          R, C = len(grid), len(grid[0])
+          dist = {(r, c): 0 for r in range(R) for c in range(C) if grid[r][c] == 'W'}
+          queue = deque(dist)
+          while queue:
+              r, c = queue.popleft()
+              for r2, c2 in ((r + 1, c), (r - 1, c), (r, c + 1), (r, c - 1)):
+                  if 0 <= r2 < R and 0 <= c2 < C and grid[r2][c2] == '.' and (r2, c2) not in dist:
+                      dist[(r2, c2)] = dist[(r, c)] + 1
+                      queue.append((r2, c2))
+          soil = sum(row.count('.') for row in grid)
+          wet = sum(1 for r, c in dist if grid[r][c] == '.')
+          return max(dist.values(), default=0) if wet == soil else -1
+    `,
+    why: 'Putting every source in the queue at distance 0 runs one BFS for all of them, so each cell gets its distance to the nearest source.',
+    hints: ['Seed the queue with every `W` cell at distance 0.', 'At the end, compare how many soil cells were reached with how many exist.'],
+    wrong: [
+      // BFS from the first source only: cells near another source get the wrong time.
+      py`
+        from collections import deque
+
+        def minutes_to_fill(grid: list[str]) -> int:
+            R, C = len(grid), len(grid[0])
+            sources = [(r, c) for r in range(R) for c in range(C) if grid[r][c] == 'W']
+            dist = {sources[0]: 0} if sources else {}
+            queue = deque(dist)
+            while queue:
+                r, c = queue.popleft()
+                for r2, c2 in ((r + 1, c), (r - 1, c), (r, c + 1), (r, c - 1)):
+                    if 0 <= r2 < R and 0 <= c2 < C and grid[r2][c2] != '#' and (r2, c2) not in dist:
+                        dist[(r2, c2)] = dist[(r, c)] + 1
+                        queue.append((r2, c2))
+            soil = sum(row.count('.') for row in grid)
+            wet = sum(1 for r, c in dist if grid[r][c] == '.')
+            return max(dist.values(), default=0) if wet == soil else -1
+      `,
+      // Never reports -1: unreachable soil is silently ignored.
+      py`
+        from collections import deque
+
+        def minutes_to_fill(grid: list[str]) -> int:
+            R, C = len(grid), len(grid[0])
+            dist = {(r, c): 0 for r in range(R) for c in range(C) if grid[r][c] == 'W'}
+            queue = deque(dist)
+            while queue:
+                r, c = queue.popleft()
+                for r2, c2 in ((r + 1, c), (r - 1, c), (r, c + 1), (r, c - 1)):
+                    if 0 <= r2 < R and 0 <= c2 < C and grid[r2][c2] == '.' and (r2, c2) not in dist:
+                        dist[(r2, c2)] = dist[(r, c)] + 1
+                        queue.append((r2, c2))
+            return max(dist.values(), default=0)
+      `,
+    ],
+    grading: { entry: 'minutes_to_fill', kind: 'function', compare: 'exact' },
+    cases: [
+      { args: "['W..']", expected: '2' },
+      { args: "['W..', '...', '..W']", expected: '2' },
+      { args: "['...', '...', '..W']", expected: '4' },
+      { args: "['W.#.']", expected: '-1' },
+      { args: "['#']", expected: '0' },
+      { args: "['W']", expected: '0' },
+      { args: "['.']", expected: '-1' },
+    ],
+    provenance: 'original',
+  },
 ];

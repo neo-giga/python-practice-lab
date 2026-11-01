@@ -221,4 +221,59 @@ export const dAlgoSlidingWindowDrills: SkillDrill[] = [
     ],
     provenance: 'original',
   },
+  {
+    id: 'sw-fixed-window-sum',
+    version: 1,
+    title: 'Write the fixed-size window: best k in a row',
+    skills: ['algo-sliding-window', 'builtins-aggregate'],
+    kind: 'write',
+    prompt: 'Return the largest sum of `k` consecutive items of `nums` (`1 <= k <= len(nums)`). Slide the window: add the item entering on the right, subtract the one leaving on the left.',
+    signature: 'def best_window_sum(nums: list[int], k: int) -> int',
+    starter: py`
+      def best_window_sum(nums: list[int], k: int) -> int:
+          return sum(nums[:k])
+    `,
+    solution: py`
+      def best_window_sum(nums: list[int], k: int) -> int:
+          window = best = sum(nums[:k])
+          for i in range(k, len(nums)):
+              window += nums[i] - nums[i - k]
+              best = max(best, window)
+          return best
+    `,
+    why: 'Each slide changes the sum by one item in and one out, so the loop is O(n); starting `best` at the first window (not 0) keeps all-negative input right.',
+    hints: ['Start with `window = sum(nums[:k])`.', 'The item leaving when `nums[i]` enters is `nums[i - k]`.'],
+    wrong: [
+      // best starts at 0, so all-negative input returns 0.
+      py`
+        def best_window_sum(nums: list[int], k: int) -> int:
+            window = sum(nums[:k])
+            best = 0
+            for i in range(k, len(nums)):
+                window += nums[i] - nums[i - k]
+                best = max(best, window)
+            return max(best, window) if len(nums) == k else best
+      `,
+      // Removes nums[i - k + 1]: the window drifts off by one.
+      py`
+        def best_window_sum(nums: list[int], k: int) -> int:
+            window = best = sum(nums[:k])
+            for i in range(k, len(nums)):
+                window += nums[i] - nums[i - k + 1]
+                best = max(best, window)
+            return best
+      `,
+    ],
+    grading: { entry: 'best_window_sum', kind: 'function', compare: 'exact' },
+    cases: [
+      { args: '[1, 2, 3, 4], 2', expected: '7' },
+      { args: '[3, -1, 4, -1, 5], 3', expected: '8' },
+      { args: '[-1, -2, -3], 2', expected: '-3' },
+      { args: '[5], 1', expected: '5' },
+      { args: '[2, 2, 2], 3', expected: '6' },
+      { args: '[0, 9, 0, 9], 1', expected: '9' },
+      { args: '[4, 1, 1, 1, 4], 2', expected: '5' },
+    ],
+    provenance: 'original',
+  },
 ];

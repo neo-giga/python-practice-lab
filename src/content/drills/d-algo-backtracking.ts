@@ -222,4 +222,81 @@ export const dAlgoBacktrackingDrills: SkillDrill[] = [
     ],
     provenance: 'original',
   },
+  {
+    id: 'bt-permutations-write',
+    version: 1,
+    title: 'Write backtracking: every ordering',
+    skills: ['algo-backtracking', 'list-basics'],
+    kind: 'write',
+    prompt: 'Return every ordering of `items` (distinct values) as a list of lists, in any order. Track which items are used; choose, recurse, then un-choose both the path and the used mark.',
+    signature: 'def orderings(items: list) -> list[list]',
+    starter: py`
+      def orderings(items: list) -> list[list]:
+          return [items, items[::-1]]
+    `,
+    solution: py`
+      def orderings(items: list) -> list[list]:
+          out, path = [], []
+          used = [False] * len(items)
+          def go():
+              if len(path) == len(items):
+                  out.append(path[:])
+                  return
+              for j, x in enumerate(items):
+                  if not used[j]:
+                      used[j] = True
+                      path.append(x)
+                      go()
+                      path.pop()
+                      used[j] = False
+          go()
+          return out
+    `,
+    why: 'Permutations loop over every unused item at each level (not `range(start, n)`), and both the path and the `used` mark must be undone after the call.',
+    hints: ['Keep `used = [False] * len(items)` next to `path`.', 'After `go()`, `path.pop()` and set `used[j] = False`.'],
+    wrong: [
+      // Never clears the used mark: only the first ordering is found.
+      py`
+        def orderings(items: list) -> list[list]:
+            out, path = [], []
+            used = [False] * len(items)
+            def go():
+                if len(path) == len(items):
+                    out.append(path[:])
+                    return
+                for j, x in enumerate(items):
+                    if not used[j]:
+                        used[j] = True
+                        path.append(x)
+                        go()
+                        path.pop()
+            go()
+            return out
+      `,
+      // Combination loop (start index): yields only the sorted-position ordering.
+      py`
+        def orderings(items: list) -> list[list]:
+            out, path = [], []
+            def go(start):
+                if len(path) == len(items):
+                    out.append(path[:])
+                    return
+                for j in range(start, len(items)):
+                    path.append(items[j])
+                    go(j + 1)
+                    path.pop()
+            go(0)
+            return out
+      `,
+    ],
+    grading: { entry: 'orderings', kind: 'function', compare: 'unordered' },
+    cases: [
+      { args: '[1, 2, 3]', expected: '[[1, 2, 3], [1, 3, 2], [2, 1, 3], [2, 3, 1], [3, 1, 2], [3, 2, 1]]' },
+      { args: "['a', 'b']", expected: "[['a', 'b'], ['b', 'a']]" },
+      { args: '[5]', expected: '[[5]]' },
+      { args: '[]', expected: '[[]]' },
+      { args: '[0, -1]', expected: '[[0, -1], [-1, 0]]' },
+    ],
+    provenance: 'original',
+  },
 ];

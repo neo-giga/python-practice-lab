@@ -223,4 +223,64 @@ export const dAlgoBinarySearchDrills: SkillDrill[] = [
     ],
     provenance: 'original',
   },
+  {
+    id: 'bs-first-true-generic',
+    version: 1,
+    title: 'Write search on the answer: first k where ok(k) is true',
+    skills: ['algo-binary-search', 'while-loops'],
+    kind: 'write',
+    prompt: '`ok` is monotone on `[lo, hi)`: false, false, …, then true from some point on. Return the smallest `k` in `[lo, hi)` with `ok(k)` true, or `hi` if there is none. Call `ok` O(log n) times.',
+    signature: 'def first_true(lo: int, hi: int, ok) -> int',
+    starter: py`
+      def first_true(lo: int, hi: int, ok) -> int:
+          return lo
+    `,
+    solution: py`
+      def first_true(lo: int, hi: int, ok) -> int:
+          while lo < hi:
+              mid = (lo + hi) // 2
+              if ok(mid):
+                  hi = mid
+              else:
+                  lo = mid + 1
+          return lo
+    `,
+    why: 'This is the lower-bound loop with `a[mid] < x` replaced by `not ok(mid)`: every "smallest value that works" question reduces to it.',
+    hints: ['Same shape as `lower_bound`: half-open `[lo, hi)` and `while lo < hi`.', 'If `ok(mid)`, `mid` may be the answer: `hi = mid`; else `lo = mid + 1`.'],
+    wrong: [
+      // hi = mid - 1 mixes the closed-interval update into the half-open loop and skips the answer.
+      py`
+        def first_true(lo: int, hi: int, ok) -> int:
+            while lo < hi:
+                mid = (lo + hi) // 2
+                if ok(mid):
+                    hi = mid - 1
+                else:
+                    lo = mid + 1
+            return lo
+      `,
+      // Returns hi - 1 when nothing works.
+      py`
+        def first_true(lo: int, hi: int, ok) -> int:
+            end = hi
+            while lo < hi:
+                mid = (lo + hi) // 2
+                if ok(mid):
+                    hi = mid
+                else:
+                    lo = mid + 1
+            return lo if lo < end else end - 1
+      `,
+    ],
+    grading: { entry: 'first_true', kind: 'function', compare: 'exact' },
+    cases: [
+      { args: '0, 100, lambda k: k * k >= 50', expected: '8' },
+      { args: '0, 10, lambda k: False', expected: '10' },
+      { args: '0, 10, lambda k: True', expected: '0' },
+      { args: '5, 5, lambda k: True', expected: '5' },
+      { args: '1, 1000, lambda k: k * 7 >= 700', expected: '100' },
+      { args: '-10, 10, lambda k: k >= -3', expected: '-3' },
+    ],
+    provenance: 'original',
+  },
 ];

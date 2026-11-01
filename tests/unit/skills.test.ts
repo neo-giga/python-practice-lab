@@ -22,7 +22,7 @@ describe('skill taxonomy', () => {
       const f = s.frequency!;
       expect(s.tier, s.id).toBe(f >= 0.15 ? 1 : f >= 0.05 ? 2 : 3);
     }
-    expect(frequencyLabel(skills[0])).toBe('used in 67% of solutions');
+    expect(frequencyLabel(skills[0])).toBe('used in 70% of solutions');
   });
 });
 

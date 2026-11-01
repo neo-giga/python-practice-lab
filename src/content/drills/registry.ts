@@ -20,3 +20,23 @@ export { intMathDrills } from './b-int-math';
 export { grids2dDrills } from './b-grids-2d';
 
 // --- Writer C (Tier 2-3 skills and traps) ---
+export { bitOpsDrills } from './c-bit-ops';
+export { conditionalExprDrills } from './c-conditional-expr';
+export { slicingDrills } from './c-slicing';
+export { membershipDrills } from './c-membership';
+export { dictCounterDrills } from './c-dict-counter';
+export { infinityDrills } from './c-infinity';
+export { sortingDrills } from './c-sorting';
+export { nodesDrills } from './c-nodes';
+export { typeConversionDrills } from './c-type-conversion';
+export { setsDrills } from './c-sets';
+export { stringsDrills } from './c-strings';
+export { trapMutabilityDrills } from './c-trap-mutability';
+export { trapNumbersRuntimeDrills } from './c-trap-numbers-runtime';
+export { dequeDrills } from './c-deque';
+export { memoCacheDrills } from './c-memo-cache';
+export { heapqDrills } from './c-heapq';
+export { itertoolsDrills } from './c-itertools';
+export { bisectDrills } from './c-bisect';
+export { nonlocalDrills } from './c-nonlocal';
+export { anyAllDrills } from './c-any-all';

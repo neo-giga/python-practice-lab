@@ -10,5 +10,6 @@ export { exampleDrills } from './_examples';
 export { loopsRangeDrills } from './b-loops-range';
 export { indexingLenDrills } from './b-indexing-len';
 export { assignSwapDrills } from './b-assign-swap';
+export { recursionHelpersDrills } from './b-recursion-helpers';
 
 // --- Writer C (Tier 2-3 skills and traps) ---

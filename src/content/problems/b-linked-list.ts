@@ -294,6 +294,20 @@ export const bLinkedListProblems: CodingProblem[] = [
                 tail = tail.next
             return dummy.next
       `,
+      // Converts whole readings through str and int; right for short readings (0 + 0 included),
+      // but int() refuses strings longer than 4 300 digits (CPython 3.11+), so the 5 000-digit reading raises ValueError.
+      py`
+        def add_readings(a: Optional[ListNode], b: Optional[ListNode]) -> Optional[ListNode]:
+            def to_int(node):
+                digits = []
+                while node:
+                    digits.append(str(node.val))
+                    node = node.next
+                return int("".join(reversed(digits)))
+
+            total = to_int(a) + to_int(b)
+            return build_list([int(ch) for ch in reversed(str(total))])
+      `,
     ],
     grading: { entry: 'add_readings', kind: 'function', compare: 'exact', transform: 'linked_list' },
     cases: [
@@ -306,6 +320,7 @@ export const bLinkedListProblems: CodingProblem[] = [
       { args: 'build_list([9, 9, 9]), build_list([9, 9, 9, 9, 9])', expected: '[8, 9, 9, 0, 0, 1]' },
       { args: 'build_list([2, 0, 3]), build_list([8, 9, 6])', expected: '[0, 0, 0, 1]' },
       { args: 'build_list([9] * 1000), build_list([1])', expected: '[0] * 1000 + [1]', label: 'A 1 000-digit reading of all 9s, plus 1' },
+      { args: 'build_list([9] * 5000), build_list([1])', expected: '[0] * 5000 + [1]', label: 'A 5 000-digit reading of all 9s, plus 1 (past the 4 300-digit int/str limit)' },
     ],
     similarTo: { lc: 2, url: 'https://leetcode.com/problems/add-two-numbers/' },
     recipeIds: ['floor-div-mod', 'conditional-expr', 'listnode-treenode'],

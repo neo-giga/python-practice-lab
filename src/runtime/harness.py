@@ -22,6 +22,7 @@ import math
 import reprlib
 import sys
 import traceback
+import types
 from collections import Counter
 
 USER_FILE = "main.py"
@@ -80,6 +81,63 @@ def build_tree(values):
             queue.append(node.right)
         i += 1
     return root
+
+def build_cycle_list(values, pos):
+    """Like build_list, but the tail links back to the node at index pos (pos -1: no cycle)."""
+    head = build_list(values)
+    if head is None or pos < 0:
+        return head
+    nodes = []
+    node = head
+    while node is not None:
+        nodes.append(node)
+        node = node.next
+    nodes[-1].next = nodes[pos]
+    return head
+
+def build_shared_lists(a, b, tail):
+    """Two lists a + tail and b + tail that share the same tail nodes. Returns (head_a, head_b)."""
+    shared = build_list(tail)
+    def attach(values):
+        head = build_list(values)
+        if head is None:
+            return shared
+        node = head
+        while node.next is not None:
+            node = node.next
+        node.next = shared
+        return head
+    return attach(a), attach(b)
+
+class GraphNode:
+    def __init__(self, val=0, neighbors=None):
+        self.val = val
+        self.neighbors = neighbors if neighbors is not None else []
+    def __repr__(self):
+        return f"GraphNode({self.val})"
+
+def build_graph(adj):
+    """Adjacency list (1-indexed, LeetCode style): adj[i] lists the neighbours of node i + 1. Returns node 1, or None."""
+    if not adj:
+        return None
+    nodes = [GraphNode(i + 1) for i in range(len(adj))]
+    for i, nbrs in enumerate(adj):
+        nodes[i].neighbors = [nodes[j - 1] for j in nbrs]
+    return nodes[0]
+
+def graph_to_adj(node):
+    """Inverse of build_graph: the adjacency list of every node reachable from node, ordered by val."""
+    if node is None:
+        return []
+    seen = {}
+    stack = [node]
+    while stack:
+        cur = stack.pop()
+        if cur.val in seen:
+            continue
+        seen[cur.val] = cur
+        stack.extend(cur.neighbors)
+    return [[n.val for n in seen[v].neighbors] for v in sorted(seen)]
 '''
 
 MAX_NODES = 10_000
@@ -95,7 +153,8 @@ class _Shape:
         self.values = values
 
     def __eq__(self, other):
-        return isinstance(other, _Shape) and self.kind == other.kind and self.values == other.values
+        # Type-strict like `same`: a tree holding True is not a tree holding 1.
+        return isinstance(other, _Shape) and self.kind == other.kind and same(self.values, other.values)
 
     def __repr__(self):
         return f"{self.kind}{self.values!r}"
@@ -298,6 +357,59 @@ def _no_input(*_args):
 # ---------------------------------------------------------------- running ---
 
 
+# ------------------------------------------------------------- teardown ---
+# CPython frees a linked chain of objects recursively (node -> node.next -> ...).
+# Under Pyodide a few thousand ListNodes overflow the JS/WASM stack on free and
+# kill the interpreter. Before references drop, walk everything a case created
+# and cut node links iteratively, so each node is freed on its own.
+
+_LINK_ATTRS = ("next", "prev", "left", "right", "random", "child", "children", "neighbors", "parent")
+_SKIP = (types.ModuleType, type, types.FunctionType, types.BuiltinFunctionType, types.MethodType, types.CodeType)
+_ATOMS = (int, float, complex, str, bytes, bool)
+
+
+def _teardown(roots, limit=2_000_000):
+    stack = [r for r in roots if r is not None]
+    seen = set()
+    while stack and len(seen) < limit:
+        obj = stack.pop()
+        if obj is None or isinstance(obj, _ATOMS) or isinstance(obj, _SKIP):
+            continue
+        oid = id(obj)
+        if oid in seen:
+            continue
+        seen.add(oid)
+        if isinstance(obj, dict):
+            stack.extend(v for k, v in obj.items() if k != "__builtins__")
+        elif isinstance(obj, (list, tuple, set, frozenset)):
+            stack.extend(obj)
+        elif isinstance(obj, _Shape):
+            stack.append(obj.values)
+        else:
+            d = getattr(obj, "__dict__", None)
+            if not isinstance(d, dict):
+                continue
+            for attr in _LINK_ATTRS:
+                v = d.get(attr)
+                if v is None or isinstance(v, _ATOMS):
+                    continue
+                stack.append(v)
+                try:
+                    d[attr] = None  # the stack still holds v, so nothing is freed recursively here
+                except Exception:  # noqa: BLE001
+                    pass
+    stack.clear()
+
+
+def _teardown_traceback(tb):
+    """Cut links held by the locals of the learner's failing frames before the traceback is freed."""
+    frames = []
+    while tb is not None:
+        frames.append(dict(tb.tb_frame.f_locals))  # 3.13+: a FrameLocalsProxy, not a dict
+        tb = tb.tb_next
+    _teardown(frames)
+
+
 def _fresh_namespace():
     ns = {"__name__": "__main__", "__builtins__": builtins}
     exec(compile(PRELUDE, "<prelude>", "exec"), ns)
@@ -318,10 +430,12 @@ def pil_run(source):
     except BaseException as exc:  # noqa: BLE001 - report everything the learner raised
         message = format_user_error(exc)
         sys.stderr.write(message)
+        _teardown_traceback(exc.__traceback__)
         return json.dumps({"ok": False, "error": message.strip().splitlines()[-1]})
     finally:
         sys.stdout.flush()
         sys.stderr.flush()
+        _teardown((ns,))
     return json.dumps({"ok": True})
 
 
@@ -341,12 +455,55 @@ def _call_ops(ns, entry, ops, params):
     return results
 
 
+def _resolve_entry(ns, entry, lc_method):
+    """The learner's function: top-level `entry`, else `Solution().<lc_method>` (LeetCode habit)."""
+    fn = ns.get(entry)
+    if callable(fn) and not isinstance(fn, type):
+        return fn
+    if lc_method:
+        sol = ns.get("Solution")
+        if isinstance(sol, type):
+            method = getattr(sol(), lc_method, None)
+            if callable(method):
+                return method
+            raise NameError(f"class Solution has no method {lc_method!r} (or define a function {entry!r})")
+    if callable(fn):
+        return fn
+    raise NameError(f"function {entry!r} is not defined")
+
+
+def _load_checker(source):
+    """Compile the problem's checker in its own fresh namespace (never the learner's)."""
+    ns = _fresh_namespace()
+    exec(compile(source, "<checker>", "exec"), ns)
+    fn = ns.get("check")
+    if not callable(fn):
+        raise NameError("checker source does not define check(args, result)")
+    return fn
+
+
+class _CaseDone(Exception):
+    """Internal: the case was judged by a checker."""
+
+
+def _run_checker(check_fn, original_args, actual):
+    """None if accepted, else a message. Checker bugs on odd results count as a rejection."""
+    try:
+        verdict = check_fn(original_args, actual)
+    except Exception as exc:  # noqa: BLE001 - malformed results often make the checker raise
+        return f"Rejected by the checker ({type(exc).__name__}: {exc})"
+    if verdict is None:
+        return None
+    return str(verdict)[:REPR_LIMIT] or "Rejected by the checker"
+
+
 def pil_grade(source, spec_json):
     spec = json.loads(spec_json)
     entry = spec["entry"]
     kind = spec.get("kind", "function")
     mode = spec.get("compare", "exact")
     check = spec.get("check", "return")
+    lc_method = spec.get("lcMethod")
     transform = TRANSFORMS[spec.get("transform")]
     report = {"cases": [], "passed": 0, "total": len(spec["cases"]), "compileError": None}
 
@@ -365,9 +522,12 @@ def pil_grade(source, spec_json):
         row = {"input": case["args"], "expected": None, "actual": None,
                "passed": False, "error": None, "stdout": ""}
         expected_ns = _fresh_namespace()
+        checker = None
         try:
             expected = _eval_value(case["expected"], expected_ns)
-            if spec.get("transform"):
+            if mode == "checker":
+                checker = _load_checker(spec.get("checker") or "")
+            if spec.get("transform") and mode != "checker":
                 # Expected list/tree values are written as plain lists (level order for trees).
                 expected = _Shape("list" if spec["transform"] == "linked_list" else "tree", expected)
             row["expected"] = show(expected)
@@ -377,6 +537,7 @@ def pil_grade(source, spec_json):
             continue
 
         ns = _fresh_namespace()  # fresh module scope per case: caches/globals never leak
+        args = returned = actual = original = None
         sink = BoundedText(CASE_STDOUT_LIMIT)
         old_out, old_input = sys.stdout, builtins.input
         sys.stdout = sink
@@ -394,18 +555,35 @@ def pil_grade(source, spec_json):
                     raise NameError(f"function {entry!r} is not defined")
                 actual = [fn(*call_args) for call_args in _eval_value(case["args"], ns)]
             else:
-                fn = ns.get(entry)
-                if not callable(fn):
-                    raise NameError(f"function {entry!r} is not defined")
+                fn = _resolve_entry(ns, entry, lc_method)
                 args = _eval_value("(" + case["args"] + ",)", ns) if case["args"].strip() else ()
+                # The checker gets its own fresh copy of the original args: the same expression
+                # evaluated in a separate namespace (deepcopy recurses and overflows on long lists).
+                original = _eval_value("(" + case["args"] + ",)", _fresh_namespace()) if checker is not None and case["args"].strip() else (() if checker is not None else None)
                 returned = fn(*args)
                 if check == "mutated_arg0":
                     if returned is not None:
                         raise AssertionError(
                             f"modify the list in place and return None (returned {show(returned)})")
                     actual = args[0]
+                elif check == "return_k_prefix":
+                    if type(returned) is not int:
+                        raise AssertionError(
+                            f"return the count k as an int (returned {show(returned)})")
+                    if returned != len(expected):
+                        row["actual"] = f"k = {show(returned)}"
+                        raise AssertionError(f"expected k = {len(expected)}, got k = {returned}")
+                    actual = args[0][:returned]
                 else:
                     actual = returned
+            if checker is not None:
+                # The checker sees the raw result; the report shows the transformed snapshot.
+                row["actual"] = show(transform(actual))
+                verdict = _run_checker(checker, original, actual)
+                row["passed"] = verdict is None
+                if verdict is not None:
+                    row["error"] = verdict
+                raise _CaseDone()
             actual = transform(actual)
             row["actual"] = show(actual)
             row["passed"] = bool(same(actual, expected, mode))
@@ -413,11 +591,16 @@ def pil_grade(source, spec_json):
                 row["error"] = f"Type differs: expected {type(expected).__name__}, got {type(actual).__name__}"
             elif not row["passed"] and mode == "exact_ordered" and same(actual, expected, "exact"):
                 row["error"] = "Same keys and values, but the dict key order differs"
+        except _CaseDone:
+            pass
         except BaseException as exc:  # noqa: BLE001
             row["error"] = format_user_error(exc)
+            _teardown_traceback(exc.__traceback__)
         finally:
             sys.stdout = old_out
             builtins.input = old_input
+            _teardown((args, returned, actual, original, expected, ns))
+            args = returned = actual = original = expected = ns = None
         row["stdout"] = sink.text()
         if row["passed"]:
             report["passed"] += 1

@@ -1,0 +1,38 @@
+import { expect, test } from '@playwright/test';
+import { writeFileSync } from 'node:fs';
+const LIVE = 'https://neo-giga.github.io/python-interview-lab/';
+async function setEditor(page, code) {
+  const content = page.locator('[data-testid=editor] .cm-content');
+  await content.click();
+  await page.keyboard.press('ControlOrMeta+A');
+  await page.keyboard.press('Delete');
+  await page.keyboard.insertText(code);
+}
+test('capture v1 storage from live site', async ({ page }) => {
+  test.setTimeout(240_000);
+  // 1. upgraded (LeetCode-style) drill: solve unassisted
+  await page.goto(LIVE + '#/practice/two-sum-indexes');
+  await setEditor(page, 'def pair_indexes(nums, target):\n    seen = {}\n    for j, x in enumerate(nums):\n        if target - x in seen:\n            return [seen[target - x], j]\n        seen[x] = j\n    return []');
+  await page.getByTestId('run').click();
+  await expect(page.getByTestId('run-summary')).toContainText('All 5 cases passed', { timeout: 120_000 });
+  // 2. fluency drill: failed attempt + draft
+  await page.goto(LIVE + '#/practice/first-present');
+  await setEditor(page, 'def first_present(values):\n    return "draft from live v1"');
+  await page.getByTestId('run').click();
+  await expect(page.getByTestId('run-summary')).toContainText('cases passed', { timeout: 120_000 });
+  await page.getByTestId('show-hint').click();
+  // 3. another upgraded drill: draft only
+  await page.goto(LIVE + '#/practice/reverse-linked-list');
+  await setEditor(page, 'def reverse_list(head):\n    # draft from live v1\n    return head');
+  await page.waitForTimeout(700);
+  // 4. playground
+  await page.goto(LIVE + '#/playground');
+  await setEditor(page, 'print("playground from live v1")');
+  await page.waitForTimeout(700);
+  await page.goto(LIVE + '#/about');
+  const dl = page.waitForEvent('download');
+  await page.getByRole('button', { name: 'Export progress' }).click();
+  await (await dl).saveAs('/tmp/pilfix/v1-backup.json');
+  const ls = await page.evaluate(() => Object.fromEntries(Object.keys(localStorage).sort().map((k) => [k, localStorage.getItem(k)])));
+  writeFileSync('/tmp/pilfix/v1-localstorage.json', JSON.stringify(ls, null, 1));
+});

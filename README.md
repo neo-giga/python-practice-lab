@@ -1,31 +1,24 @@
-# Python Interview Lab
+# Python Practice Lab
 
-Build Python 3 *fluency* for coding interviews: look up an idiom, run it, solve a small drill, get real feedback, and revisit weak topics. Everything runs in the browser, with real CPython compiled to WebAssembly ([Pyodide](https://pyodide.org/)). You do not need to install Python, sign in, or use a backend.
+A practice lab for Python. The first track is **LeetCode-style coding problems in a plan built from your preferences**: say how long you have, how many hours a week, where you stand and (optionally) what to focus on, and you get a week-by-week plan of original problems, graded in your browser by real CPython compiled to WebAssembly ([Pyodide](https://pyodide.org/)). No install, no account, no backend.
 
-**Website: <https://neo-giga.github.io/python-interview-lab/>** · [Cheatsheet](https://neo-giga.github.io/python-interview-lab/#/learn) · [Practice](https://neo-giga.github.io/python-interview-lab/#/practice) · [Playground](https://neo-giga.github.io/python-interview-lab/#/playground)
+**Website: <https://neo-giga.github.io/python-interview-lab/>** · [Today](https://neo-giga.github.io/python-interview-lab/#/) · [Problems](https://neo-giga.github.io/python-interview-lab/#/problems) · [Reference](https://neo-giga.github.io/python-interview-lab/#/learn) · [Playground](https://neo-giga.github.io/python-interview-lab/#/playground)
 
-![Cheatsheet on a desktop](docs/screenshots/desktop-1440-learn.png)
-
-| Practice on a desktop (graded run) | Practice on a tablet | Cheatsheet on a phone | Playground on a phone |
+| Today on a desktop | Problem workspace on a desktop | Problem on a phone | Plan on a tablet |
 | --- | --- | --- | --- |
-| ![](docs/screenshots/desktop-1440-practice-pass.png) | ![](docs/screenshots/tablet-768-practice-fail.png) | ![](docs/screenshots/phone-375-learn.png) | ![](docs/screenshots/phone-375-playground.png) |
+| ![](docs/screenshots/desktop-1440-today.png) | ![](docs/screenshots/desktop-1440-problem-result.png) | ![](docs/screenshots/phone-375-problem-result.png) | ![](docs/screenshots/tablet-768-plan.png) |
 
-## What it is (and is not)
+## What it is
 
-Interviews test two different skills:
+| | Content |
+| --- | --- |
+| **Coding interview track** | Original LeetCode-style problems across 22 patterns (12 core, 10 secondary), each with worked examples, constraints, three progressive hints, a reference solution with complexity, and an idiom note: the Python point of the problem. **Run examples** tries only the examples and never records a solve; **Submit** checks every case, including edge cases and a larger input. |
+| **Your plan** | A deterministic, explainable generator orders patterns by prerequisites (hashing before two pointers, trees before graphs), fits your hours (estimate × 1.6), interleaves patterns, and says *why* each problem is there. It adapts: a pass schedules a review (7 days, or 2 if you needed help); three failed submits and leaving bring an easier sibling next and a retry 3 days later. Stop, timeouts and load failures never count against you. Preferences live in the plan URL, so a link reproduces the plan. |
+| **Python fluency** | 19 short drills on the language itself: implement, repair a pitfall, apply an idiom. |
+| **Reference** | 74 runnable recipes in 25 topics: what and when, code, its exact output, complexity, and the trap interviewers look for. Also in [`docs/CHEATSHEET.md`](docs/CHEATSHEET.md). |
+| **Playground** | Free-form code with stdout, stderr, tracebacks, stdin, Stop and a time limit. |
 
-- **Algorithms:** choosing the right approach (two pointers, BFS, DP, …).
-- **Python syntax and idioms:** expressing that approach quickly and correctly: `//` with negative numbers, aliasing in `[[0] * n] * m`, `heapq` tie-breakers, `nonlocal`, `bisect`, `Counter`, …
-
-This lab focuses on the second skill and connects it to the first. It is not a dump of memorised LeetCode solutions. Pattern drills exist so that you practise the *Python* of each pattern.
-
-| | Count | Content |
-| --- | --- | --- |
-| **Cheatsheet** | 74 recipes in 25 topics | What and when, runnable code, its exact output, complexity where it matters, and the trap interviewers look for. Search, topic and level filters, shareable links, and "Run here" in the browser. |
-| **Practice** | 58 graded drills | Implement, repair a pitfall, apply an idiom, or complete a pattern. Each drill has an objective, a starter, progressive hints, a reference solution with an explanation, and 3–9 deterministic cases. |
-| **Playground** | — | Free-form code with stdout, stderr, tracebacks, an optional stdin box, Stop, and a time limit you can set. |
-
-The cheatsheet is also available as Markdown in [`docs/CHEATSHEET.md`](docs/CHEATSHEET.md), generated from the same data. Use **Print** or **Download .md** in the app.
+Problem authors: see [`docs/AUTHORING.md`](docs/AUTHORING.md) (schema, grading modes, the `npm run gate -- <file>` corpus gate, originality rules). The design system is described in [`DESIGN.md`](DESIGN.md) and the product in [`PRODUCT.md`](PRODUCT.md).
 
 ## Run it locally
 
@@ -47,8 +40,9 @@ npm run preview    # http://127.0.0.1:4173/python-interview-lab/
 
 ```bash
 npm run typecheck          # TypeScript 7 (tsc --noEmit)
-npm run test:unit          # content validation, CHEATSHEET.md drift, storage/progress rules, router, runner races (fake worker), independent cross-checks
-npm run test:corpus        # REAL Pyodide in Node: every recipe's output, every reference solution, starters and known-wrong solutions must fail
+npm run test:unit          # content + problem validation, plan generator, storage/migration/backup, router + legacy links, runner races (fake worker), cross-checks
+npm run test:corpus        # REAL Pyodide in Node: every recipe's output; every problem/drill reference passes, starters and known-wrong solutions fail, examples execute
+npm run gate -- <file>     # the same corpus gate for one problem file (for authors)
 npm run test:portability   # the same corpus under native CPython 3.11 (needs `uv`); items marked 3.12+/3.14 are skipped
 npx playwright install chromium firefox webkit   # once
 npm run build && npm run test:e2e   # real browsers, real Pyodide: 375×812, 768×1024, 1440×900 in Chromium; runtime checks in Firefox and WebKit
@@ -81,9 +75,9 @@ The **mocked** tests are only the deterministic boundary tests: runner load fail
 
 ## Your data
 
-Progress, drafts and playground code are stored **only in this browser** (localStorage, keys `pil:v1:*`). There is no account, sync, analytics or server. If saving fails (private mode, quota, corrupt data), a warning is shown and the app keeps working in memory. Unreadable data is kept under a `pil:v1:corrupt:*` key instead of being deleted. Use **About → Export/Import progress** to move between browsers.
+Your plan, progress, drafts and playground code are stored **only in this browser** (localStorage, keys `pil:v1:*`). There is no account, sync, analytics or server. If saving fails (private mode, quota, corrupt data), a warning is shown and the app keeps working in memory. Unreadable data is kept under a `pil:v1:corrupt:*` key instead of being deleted. Use **About → Export/Import progress** to move between browsers.
 
-A drill counts as **solved** only when a specific version of your code passes every case of the current drill version. Viewing the solution is tracked as "solved after viewing the solution". A later failing run does not erase an earlier solve.
+A problem or drill counts as **solved** only when a specific version of your code passes every case of its current version (for problems: on Submit). Viewing the solution is tracked as "solved after viewing the solution". A later failing run does not erase an earlier solve.
 
 ## Architecture, isolation and cancellation
 

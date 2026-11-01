@@ -6,9 +6,10 @@ import { createRequire } from 'node:module';
 import { dirname } from 'node:path';
 import { beforeAll, describe, expect, it } from 'vitest';
 import { loadPyodide, type PyodideInterface } from 'pyodide';
-import { exercises, recipes } from '../../src/content/index';
+import { codingProblems, exercises, recipes } from '../../src/content/index';
+import { gateProblem } from '../../src/content/problem-gate';
 import { EXPECTED_PYTHON_VERSION, PYODIDE_VERSION } from '../../src/runtime/versions';
-import type { GradeReport } from '../../src/runtime/protocol';
+import type { GradeReport, GradeSpec } from '../../src/runtime/protocol';
 
 const harness = readFileSync('src/runtime/harness.py', 'utf8');
 let py: PyodideInterface;
@@ -32,7 +33,7 @@ function runRecipe(code: string) {
   return { ...res, stdout: out, stderr: err };
 }
 
-function grade(source: string, e: (typeof exercises)[number]): GradeReport {
+function grade(source: string, e: Pick<(typeof exercises)[number], 'grading' | 'cases'>): GradeReport {
   const fn = py.globals.get('pil_grade');
   const res = JSON.parse(fn(source, JSON.stringify({ ...e.grading, cases: e.cases })));
   fn.destroy();
@@ -79,8 +80,20 @@ describe(`real Pyodide ${PYODIDE_VERSION}`, () => {
     });
   });
 
+  describe('every coding problem passes the corpus gate (reference passes, starter and wrong fail, examples execute)', () => {
+    const gradeSpec = (source: string, spec: GradeSpec): GradeReport => {
+      const fn = py.globals.get('pil_grade');
+      const res = JSON.parse(fn(source, JSON.stringify(spec)));
+      fn.destroy();
+      return res;
+    };
+    it.each(codingProblems.map((p) => [p.id, p] as const))('%s', (_id, p) => {
+      expect(gateProblem(p, gradeSpec).failures).toEqual([]);
+    });
+  });
+
   it('grading is Python-native and type-strict, and reports errors per case', () => {
-    const e = exercises.find((x) => x.id === 'pair-indexes' || x.id === 'two-sum-indexes')!;
+    const e = codingProblems.find((x) => x.id === 'two-sum-indexes')!;
     // Right values, wrong type: a tuple is not a list.
     const tupleAnswer = grade('def pair_indexes(nums, target):\n    seen = {}\n    for j, x in enumerate(nums):\n        if target - x in seen:\n            return (seen[target - x], j)\n        seen[x] = j\n', e);
     expect(tupleAnswer.passed).toBe(0);
@@ -101,7 +114,7 @@ describe(`real Pyodide ${PYODIDE_VERSION}`, () => {
   });
 
   it('two-sum-indexes accepts a valid reverse-scanning solution', () => {
-    const e = exercises.find((x) => x.id === 'two-sum-indexes')!;
+    const e = codingProblems.find((x) => x.id === 'two-sum-indexes')!;
     const reverse = 'def pair_indexes(nums, target):\n    seen = {}\n    for i in range(len(nums) - 1, -1, -1):\n        x = nums[i]\n        if target - x in seen:\n            return [i, seen[target - x]]\n        seen[x] = i\n    return []\n';
     const r = grade(reverse, e);
     expect(failing(r)).toEqual([]);

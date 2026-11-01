@@ -1,3 +1,4 @@
+import { Icon } from './Icon';
 import type { RunResult } from '../runtime/runner';
 import type { CaseReport } from '../runtime/protocol';
 
@@ -44,7 +45,7 @@ export function RunSummary({ result, stale }: { result: RunResult; stale?: boole
   return (
     <div className={`run-summary tone-${tone}`} data-testid="run-summary" data-status={result.status}>
       <strong>
-        <span aria-hidden="true">{tone === 'pass' ? '✓ ' : tone === 'fail' ? '✗ ' : '■ '}</span>
+        <Icon name={tone === 'pass' ? 'check' : tone === 'fail' ? 'x' : 'stop'} size={16} />{' '}
         {statusText(result)}
       </strong>
       <span className="muted"> · {result.durationMs} ms</span>
@@ -78,7 +79,10 @@ function CaseRow({ c, index }: { c: CaseReport; index: number }) {
   return (
     <li className={`case ${c.passed ? 'pass' : 'fail'}`} data-testid="case">
       <div className="case-head">
-        <span className="case-badge">{c.passed ? '✓ Pass' : '✗ Fail'}</span>
+        <span className="case-badge">
+          <Icon name={c.passed ? 'check' : 'x'} size={14} />
+          {c.passed ? 'Pass' : 'Fail'}
+        </span>
         <span>Case {index + 1}</span>
       </div>
       <dl>

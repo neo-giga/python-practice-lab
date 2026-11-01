@@ -4,10 +4,12 @@ import type { Exercise, Recipe, Topic } from './schema';
 
 export const MIN_TOPICS = 20;
 export const MIN_RECIPES = 60;
-export const MIN_EXERCISES = 45;
+/** Python fluency drills (the 39 LeetCode-style drills moved to coding problems in M1). */
+export const MIN_EXERCISES = 15;
 export const MIN_CASES = 3;
 
-export function validateContent(topics: Topic[], recipes: Recipe[], exercises: Exercise[]): string[] {
+/** `practicedTopics`: topics also covered by upgraded coding problems (their legacy topic). */
+export function validateContent(topics: Topic[], recipes: Recipe[], exercises: Exercise[], practicedTopics: Set<string> = new Set()): string[] {
   const problems: string[] = [];
   const need = (cond: unknown, msg: string) => {
     if (!cond) problems.push(msg);
@@ -38,7 +40,7 @@ export function validateContent(topics: Topic[], recipes: Recipe[], exercises: E
     need(idRe.test(t.id), `topic id ${t.id} is not kebab-case`);
     need(nonEmpty(t.title) && nonEmpty(t.summary), `topic ${t.id} needs title and summary`);
     need(recipes.some((r) => r.topicId === t.id), `topic ${t.id} has no recipes`);
-    need(exercises.some((e) => e.topicId === t.id), `topic ${t.id} has no exercises`);
+    need(exercises.some((e) => e.topicId === t.id) || practicedTopics.has(t.id), `topic ${t.id} has no exercises`);
   }
   for (const r of recipes) {
     need(idRe.test(r.id), `recipe id ${r.id} is not kebab-case`);

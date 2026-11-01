@@ -21,6 +21,8 @@
     "test:unit": "vitest run --project unit",
     "test:corpus": "vitest run --project corpus",
     "test:portability": "vite-node scripts/export-content.ts && uv run --no-project --python 3.11 python scripts/portability.py build/content.json",
+    "gate": "vite-node scripts/gate-problems.ts --",
+    "catalog": "vite-node scripts/catalog-report.ts --",
     "test:e2e": "playwright test",
     "check": "npm run typecheck && npm test && npm run build && npm run test:e2e"
   },
@@ -30,6 +32,8 @@
     "@codemirror/language": "6.13.1",
     "@codemirror/state": "6.7.6",
     "@codemirror/view": "6.43.15",
+    "@fontsource-variable/geist": "5.3.0",
+    "@fontsource-variable/geist-mono": "5.3.0",
     "@lezer/highlight": "1.2.5",
     "@lezer/python": "1.1.19",
     "codemirror": "6.0.2",

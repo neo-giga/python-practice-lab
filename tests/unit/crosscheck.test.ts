@@ -2,9 +2,9 @@
 // the content are recomputed here with separate JavaScript implementations
 // (brute force or closed form), not with the Python reference solutions.
 import { describe, expect, it } from 'vitest';
-import { exercises } from '../../src/content/index';
+import { codingProblems, exercises } from '../../src/content/index';
 
-const ex = (id: string) => exercises.find((e) => e.id === id)!;
+const ex = (id: string) => [...exercises, ...codingProblems].find((e) => e.id === id)!;
 const expectedOf = (id: string, args: string) => ex(id).cases.find((c) => c.args === args)!.expected;
 
 describe('independent cross-checks', () => {

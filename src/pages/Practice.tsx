@@ -7,6 +7,10 @@ import { Drawer } from '../components/Drawer';
 import { RichText, inline } from '../components/RichText';
 import { GradeOutput, RunSummary } from '../components/RunOutput';
 import { RuntimeStatus } from '../components/RuntimeStatus';
+import { useRunFocus } from '../components/useRunFocus';
+import { Segmented } from '../components/ui';
+import { StatusMark } from '../components/ui';
+import { Icon } from '../components/Icon';
 import { describeComparison, exerciseById, isDone, nextDrill, recipeById, topicById, topicProgress } from '../lib/curriculum';
 import { sourceHash } from '../lib/hash';
 import { recordAttempt, solveState, type ProgressState, type SolveState } from '../lib/progress';
@@ -14,7 +18,7 @@ import { href, navigate, type Route } from '../lib/router';
 import type { RunResult } from '../runtime/runner';
 import { progress, runner, useProgress, useRunnerState } from '../state';
 
-type PracticeRoute = Extract<Route, { page: 'practice' }>;
+type PracticeRoute = Extract<Route, { page: 'fluency' }>;
 
 const STATE_LABEL: Record<SolveState, string> = {
   unsolved: 'Not solved',
@@ -22,16 +26,9 @@ const STATE_LABEL: Record<SolveState, string> = {
   assisted: 'Solved after viewing the solution',
   outdated: 'Solved an earlier version',
 };
-const STATE_ICON: Record<SolveState, string> = { unsolved: '○', solved: '●', assisted: '◐', outdated: '◌' };
 
 function StatusIcon({ state, failed }: { state: SolveState; failed: boolean }) {
-  const label = state === 'unsolved' && failed ? 'Attempted, not solved' : STATE_LABEL[state];
-  return (
-    <span className={`status-icon s-${state}${failed && state === 'unsolved' ? ' s-failed' : ''}`} title={label}>
-      <span aria-hidden="true">{state === 'unsolved' && failed ? '✗' : STATE_ICON[state]}</span>
-      <span className="visually-hidden">{label}</span>
-    </span>
-  );
+  return <StatusMark mark={state === 'unsolved' ? (failed ? 'attempted' : 'unsolved') : state} />;
 }
 
 function filtered(p: ProgressState, status?: string, topic?: string) {
@@ -49,29 +46,22 @@ function ExerciseList({ route, current }: { route: PracticeRoute; current?: stri
   return (
     <div className="exercise-list">
       <div className="list-filters">
-        <label className="select">
-          <span className="small muted">Show</span>
-          <select
-            value={route.status ?? ''}
-            onChange={(e) => navigate({ ...route, status: e.target.value || undefined })}
-            data-testid="status-filter"
-          >
-            <option value="">All drills</option>
-            <option value="unsolved">Unsolved</option>
-            <option value="solved">Solved</option>
-          </select>
-        </label>
-        <label className="select">
-          <span className="small muted">Topic</span>
-          <select value={route.topic ?? ''} onChange={(e) => navigate({ ...route, topic: e.target.value || undefined })}>
-            <option value="">All topics</option>
-            {topics.map((t) => (
-              <option key={t.id} value={t.id}>
-                {t.title}
-              </option>
-            ))}
-          </select>
-        </label>
+        <Segmented
+          label="Show"
+          value={(route.status ?? '') as '' | 'unsolved' | 'solved'}
+          onChange={(v) => navigate({ ...route, status: v || undefined })}
+          options={[
+            { value: '', label: 'All' },
+            { value: 'unsolved', label: 'Unsolved' },
+            { value: 'solved', label: 'Solved' },
+          ]}
+          testId="status-filter"
+        />
+        {route.topic && topicById.has(route.topic) && (
+          <a className="btn btn-quiet" href={href({ page: 'fluency', status: route.status })}>
+            <Icon name="x" size={14} /> {topicById.get(route.topic)!.title}
+          </a>
+        )}
       </div>
       {list.length === 0 && <p className="muted">No drills match this filter.</p>}
       {topics
@@ -89,13 +79,13 @@ function ExerciseList({ route, current }: { route: PracticeRoute; current?: stri
                   .map((e) => (
                     <li key={e.id}>
                       <a
-                        href={href({ page: 'practice', exerciseId: e.id, status: route.status, topic: route.topic })}
+                        href={href({ page: 'fluency', exerciseId: e.id, status: route.status, topic: route.topic })}
                         aria-current={current === e.id ? 'page' : undefined}
                         data-testid="exercise-link"
                       >
                         <StatusIcon state={solveState(p.exercises[e.id], e.version)} failed={p.exercises[e.id]?.lastStatus === 'failed'} />
                         <span className="ex-title">{e.title}</span>
-                        <span className={`badge diff-${e.difficulty}`}>{e.difficulty}</span>
+                        <span className="meta-tag">{e.difficulty}</span>
                       </a>
                     </li>
                   ))}
@@ -124,7 +114,7 @@ export function PracticePage({ route }: { route: PracticeRoute }) {
       </Drawer>
       <div className="content">
         <div className="mobile-only practice-mobile-bar">
-          <button type="button" className="btn" onClick={() => setDrawer(true)} aria-haspopup="dialog">
+          <button type="button" className="btn btn-secondary" onClick={() => setDrawer(true)} aria-haspopup="dialog">
             All drills ({solved}/{exercises.length})
           </button>
         </div>
@@ -132,7 +122,7 @@ export function PracticePage({ route }: { route: PracticeRoute }) {
           <div className="empty">
             <h1>Drill not found</h1>
             <p>
-              There is no drill called <code>{route.exerciseId}</code>. <a href={href({ page: 'practice' })}>See all drills</a>.
+              There is no drill called <code>{route.exerciseId}</code>. <a href={href({ page: 'fluency' })}>See all fluency drills</a> or the <a href={href({ page: 'problems' })}>coding problems</a>.
             </p>
           </div>
         )}
@@ -143,43 +133,37 @@ export function PracticePage({ route }: { route: PracticeRoute }) {
             <div className="practice-home">
               <header className="page-head">
                 <div>
-                  <h1>Practice</h1>
+                  <h1>Python fluency</h1>
                   <p className="lede">
-                    {exercises.length} graded drills. Your code runs in real CPython in your browser and is checked against several cases,
-                    including edge cases. You have solved {solved}.
+                    {exercises.length} short drills on the Python itself: truthiness, slicing, unpacking, comprehensions, closures and the traps
+                    interviewers like. Each is graded by real CPython in your browser. You have solved {solved}.
                   </p>
                 </div>
               </header>
               {next && (
                 <p>
-                  <a className="btn primary" href={href({ page: 'practice', exerciseId: next.id })} data-testid="start-next">
+                  <a className="btn btn-primary" href={href({ page: 'fluency', exerciseId: next.id })} data-testid="start-next">
                     {p.exercises[next.id]?.attempts ? 'Retry' : 'Start'}: {next.title}
                   </a>
                 </p>
               )}
-              <div className="mobile-hide">
-                <h2>Topics</h2>
-                <ul className="topic-grid">
-                  {topics.map((t) => {
-                    const tp = topicProgress(p, t.id);
-                    return (
-                      <li key={t.id}>
-                        <a href={href({ page: 'practice', topic: t.id })}>
-                          <strong>{t.title}</strong>
-                          <span className="muted small">
-                            {tp.solved}/{tp.total} solved
-                          </span>
-                          <span className="meter" aria-hidden="true">
-                            <span style={{ width: `${(100 * tp.solved) / tp.total}%` }} />
-                          </span>
-                        </a>
-                      </li>
-                    );
-                  })}
-                </ul>
-              </div>
               <div className="mobile-only">
                 <ExerciseList route={route} />
+              </div>
+              <div className="mobile-hide topic-chips">
+                {topics
+                  .filter((t) => topicProgress(p, t.id).total > 0)
+                  .map((t) => {
+                    const tp = topicProgress(p, t.id);
+                    return (
+                      <a key={t.id} className="topic-chip" href={href({ page: 'fluency', topic: t.id })}>
+                        <span>{t.title}</span>
+                        <span className="muted tabular">
+                          {tp.solved}/{tp.total}
+                        </span>
+                      </a>
+                    );
+                  })}
               </div>
             </div>
           )
@@ -204,6 +188,7 @@ function ExerciseView({ exercise: e, next }: { exercise: Exercise; next: Exercis
   const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const running = phase !== 'idle' && runId !== null && runId === myRun.current;
   const otherBusy = phase !== 'idle' && !running;
+  const markRunFocus = useRunFocus(running);
   const hintsShown = ep?.hintsShown ?? 0;
   const draftOutdated = initialDraft.current && initialDraft.current.exerciseVersion < e.version;
 
@@ -237,6 +222,7 @@ function ExerciseView({ exercise: e, next }: { exercise: Exercise; next: Exercis
 
   const onRun = async () => {
     if (runner.busy) return;
+    markRunFocus();
     const src = sourceRef.current;
     const hash = sourceHash(src);
     flushSave();
@@ -290,18 +276,22 @@ function ExerciseView({ exercise: e, next }: { exercise: Exercise; next: Exercis
     <div className="exercise" data-testid="exercise" data-exercise-id={e.id}>
       <section className="problem" aria-labelledby="ex-title">
         <p className="crumbs small">
-          <a href={href({ page: 'practice', topic: topic.id })}>{topic.title}</a>
+          <a href={href({ page: 'fluency' })}>Python fluency</a> <span className="muted">/</span> <a href={href({ page: 'fluency', topic: topic.id })}>{topic.title}</a>
+          <span className="muted" data-testid="progress-chip" title="Fluency drills solved">
+            {' · '}
+            <span className="visually-hidden">Drills solved: </span>
+            {exercises.filter((x) => isDone(p, x)).length}/{exercises.length} solved
+          </span>
         </p>
         <h1 id="ex-title">{e.title}</h1>
         <div className="badges">
-          <span className={`badge diff-${e.difficulty}`}>{e.difficulty}</span>
-          <span className="badge kind">{e.kind}</span>
-          {e.minPython && <span className="badge version">Python {e.minPython}+</span>}
-          <span className={`badge state-${state}`}>
-            <span aria-hidden="true">{STATE_ICON[state]}&nbsp;</span>
+          <span className="meta-tag">{e.difficulty}</span>
+          <span className="meta-tag">{e.kind}</span>
+          {e.minPython && <span className="meta-tag meta-version">Python {e.minPython}+</span>}
+          <span className={`state state-${state}`}>
             <span data-testid="solve-state">{STATE_LABEL[state]}</span>
           </span>
-          {ep && ep.attempts > 0 && <span className="badge muted-badge">{ep.attempts} {ep.attempts === 1 ? 'run' : 'runs'}</span>}
+          {ep && ep.attempts > 0 && <span className="muted small">{ep.attempts} {ep.attempts === 1 ? 'run' : 'runs'}</span>}
         </div>
         {state === 'outdated' && (
           <p className="note">This drill changed since you solved it (now version {e.version}). Run your code again to confirm it still passes.</p>
@@ -318,7 +308,7 @@ function ExerciseView({ exercise: e, next }: { exercise: Exercise; next: Exercis
         <p className="signature">
           <code>{e.signature}</code>
         </p>
-        <details className="comparison">
+        <details className="comparison disclosure">
           <summary>How answers are checked</summary>
           <p>
             {describeComparison(e)} {e.comparison && inline(e.comparison)} Inputs and expected values are visible in the results; this is
@@ -343,7 +333,7 @@ function ExerciseView({ exercise: e, next }: { exercise: Exercise; next: Exercis
             </p>
           ))}
           {hintsShown < e.hints.length ? (
-            <button type="button" className="btn" onClick={showHint} data-testid="show-hint">
+            <button type="button" className="btn btn-secondary" onClick={showHint} data-testid="show-hint">
               Show hint {hintsShown + 1} of {e.hints.length}
             </button>
           ) : (
@@ -353,7 +343,7 @@ function ExerciseView({ exercise: e, next }: { exercise: Exercise; next: Exercis
 
         <div className="solution">
           {!solutionOpen ? (
-            <button type="button" className="btn ghost" onClick={showSolution} data-testid="show-solution">
+            <button type="button" className="btn btn-quiet" onClick={showSolution} data-testid="show-solution">
               {ep?.solutionViewed ? 'Show solution again' : 'Show solution'}
             </button>
           ) : (
@@ -365,10 +355,10 @@ function ExerciseView({ exercise: e, next }: { exercise: Exercise; next: Exercis
                 <strong>Complexity:</strong> {inline(e.complexity)}
               </p>
               <div className="row">
-                <button type="button" className="btn" onClick={useSolution} disabled={running}>
+                <button type="button" className="btn btn-secondary" onClick={useSolution} disabled={running}>
                   Copy into editor
                 </button>
-                <button type="button" className="btn ghost" onClick={() => setSolutionOpen(false)}>
+                <button type="button" className="btn btn-quiet" onClick={() => setSolutionOpen(false)}>
                   Hide solution
                 </button>
               </div>
@@ -382,15 +372,15 @@ function ExerciseView({ exercise: e, next }: { exercise: Exercise; next: Exercis
         <CodeEditor value={source} onChange={onChange} onRun={onRun} readOnly={running} label={`Solution editor for ${e.title}`} testId="editor" />
         <div className="run-bar">
           {running ? (
-            <button type="button" className="btn danger" onClick={() => runner.stop()} data-testid="stop">
+            <button type="button" className="btn btn-danger" onClick={() => runner.stop()} data-testid="stop">
               Stop
             </button>
           ) : (
-            <button type="button" className="btn primary" onClick={onRun} disabled={otherBusy} data-testid="run">
+            <button type="button" className="btn btn-primary" onClick={onRun} disabled={otherBusy} data-testid="run">
               Run tests
             </button>
           )}
-          <button type="button" className="btn ghost" onClick={reset} disabled={running || source === e.starter} data-testid="reset">
+          <button type="button" className="btn btn-quiet" onClick={reset} disabled={running || source === e.starter} data-testid="reset">
             Reset to starter
           </button>
           <span className="kbd-hint muted small">Ctrl/⌘ + Enter runs. Esc then Tab leaves the editor.</span>
@@ -403,7 +393,7 @@ function ExerciseView({ exercise: e, next }: { exercise: Exercise; next: Exercis
         </div>
         {passedNow && !stale && next && (
           <p className="next-up">
-            <a className="btn primary" href={href({ page: 'practice', exerciseId: next.id })} data-testid="next-drill">
+            <a className="btn btn-primary" href={href({ page: 'fluency', exerciseId: next.id })} data-testid="next-drill">
               Next drill: {next.title} →
             </a>
           </p>

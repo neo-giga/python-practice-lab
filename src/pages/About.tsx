@@ -1,7 +1,9 @@
 import { useRef, useState } from 'react';
-import { exercises, recipes, topics } from '../content/index';
-import { emptyProgress, isDraft, isProgressState, type Draft, type ProgressState } from '../lib/progress';
-import { progress, store } from '../state';
+import { codingProblems, exercises, recipes, topics } from '../content/index';
+import { applyImport, buildBackup, stageImport, type StagedImport } from '../lib/backup';
+import { Icon } from '../components/Icon';
+import { emptyProgress } from '../lib/progress';
+import { practice, progress, store } from '../state';
 import { PYODIDE_VERSION, EXPECTED_PYTHON_VERSION } from '../runtime/versions';
 import { DEFAULT_EXEC_TIMEOUT_MS } from '../runtime/runner';
 
@@ -13,87 +15,76 @@ const SOURCES = [
   { name: 'Python documentation', url: 'https://docs.python.org/3/', note: 'Reference for semantics and version notes.' },
 ];
 
-interface Backup {
-  app: 'python-interview-lab';
-  schema: 1;
-  progress: unknown;
-  drafts: Record<string, unknown>;
-}
-
 export function AboutPage() {
   const [message, setMessage] = useState<string | null>(null);
   const fileInput = useRef<HTMLInputElement>(null);
 
   const exportData = () => {
-    const drafts: Record<string, unknown> = {};
-    for (const e of exercises) {
-      const d = progress.readDraft(e.id);
-      if (d) drafts[e.id] = d;
-    }
-    const backup: Backup = { app: 'python-interview-lab', schema: 1, progress: progress.snapshot, drafts };
+    const backup = buildBackup(store, progress.snapshot, Date.now());
     const url = URL.createObjectURL(new Blob([JSON.stringify(backup, null, 2)], { type: 'application/json' }));
     const a = document.createElement('a');
     a.href = url;
-    a.download = 'python-interview-lab-progress.json';
+    a.download = 'python-practice-lab-backup.json';
     a.click();
     setTimeout(() => URL.revokeObjectURL(url), 1000);
-    setMessage(`Exported progress for ${Object.keys(progress.snapshot.exercises).length} drills and ${Object.keys(drafts).length} drafts.`);
+    const n = Object.keys(backup.drafts).length;
+    setMessage(`Exported progress for ${Object.keys(backup.progress.exercises).length} problems and drills, ${n} ${n === 1 ? 'draft' : 'drafts'}${backup.plan ? ', your plan' : ''}${backup.playground ? ' and Playground code' : ''}.`);
   };
 
   const importData = async (file: File) => {
     // Validate and stage the whole backup before touching storage.
-    let staged: { progress: ProgressState; drafts: [string, Draft][] };
+    let staged: StagedImport;
     try {
-      const data = JSON.parse(await file.text()) as Backup;
-      if (data?.app !== 'python-interview-lab' || data.schema !== 1 || !isProgressState(data.progress)) throw new Error('not a Python Interview Lab backup');
-      const drafts = data.drafts ?? {};
-      if (typeof drafts !== 'object' || drafts === null || Array.isArray(drafts)) throw new Error('drafts are not a list of drill drafts');
-      const known = new Set(exercises.map((e) => e.id));
-      const entries: [string, Draft][] = [];
-      for (const [id, d] of Object.entries(drafts)) {
-        if (!known.has(id)) continue; // a drill this version of the site does not have
-        if (!isDraft(d)) throw new Error(`the draft for "${id}" is malformed`);
-        entries.push([id, d]);
-      }
-      staged = { progress: data.progress, drafts: entries };
+      staged = stageImport(await file.text());
     } catch (err) {
       setMessage(`Import failed: ${err instanceof Error ? err.message : String(err)}. Nothing was changed.`);
       return;
     }
-    if (!window.confirm('Replace your current progress and drill drafts with this backup? Drill drafts that are not in the backup are deleted. Playground code is kept.')) {
+    const extra = staged.schema === 2 ? ' Your plan, attempt history and Playground code are replaced too.' : ' Your plan and Playground code are kept.';
+    if (!window.confirm(`Replace your current progress and drafts with this backup? Drafts that are not in the backup are deleted.${extra}`)) {
       setMessage('Import cancelled. Nothing was changed.');
       return;
     }
-    const keep = new Set(staged.drafts.map(([id]) => id));
-    for (const e of exercises) if (!keep.has(e.id)) progress.removeDraft(e.id);
-    for (const [id, d] of staged.drafts) progress.writeDraft(id, d.source, d.exerciseVersion);
+    applyImport(store, staged);
     progress.replaceAll(staged.progress);
-    setMessage(`Imported progress for ${Object.keys(staged.progress.exercises).length} drills and ${staged.drafts.length} drafts. Imported code is never run automatically.`);
+    practice.reload();
+    const n = staged.drafts.length;
+    setMessage(`Imported progress for ${Object.keys(staged.progress.exercises).length} problems and drills and ${n} ${n === 1 ? 'draft' : 'drafts'}. Imported code is never run automatically.`);
   };
 
   const clearAll = () => {
-    if (!window.confirm('Delete all progress, drafts and playground code stored in this browser? This cannot be undone. Export first if unsure.')) return;
+    if (!window.confirm('Delete all progress, drafts, your plan and playground code stored in this browser? This cannot be undone. Export first if unsure.')) return;
     for (const name of store.names()) store.remove(name);
     progress.replaceAll(emptyProgress());
+    practice.reload();
     setMessage('All local data for this site was cleared.');
   };
 
   return (
     <div className="prose-page">
-      <h1>About Python Interview Lab</h1>
+      <h1>About Python Practice Lab</h1>
       <p className="lede">
-        A focused workspace for Python 3 <em>fluency</em> in coding interviews: the syntax and standard-library idioms you need to express an
-        algorithm quickly and correctly. It is not a collection of memorised problem solutions.
+        A practice lab for Python. The first track is LeetCode-style coding problems in a plan built from your preferences; the problems are
+        original and the point of each is the Python that expresses the algorithm cleanly.
       </p>
       <h2>How it works</h2>
       <ul>
         <li>
-          <strong>Cheatsheet:</strong> {recipes.length} short recipes across {topics.length} topics. Each has expected output, complexity where it
-          matters, and the trap interviewers look for.
+          <strong>Coding interview track:</strong> {codingProblems.length} original problems across 22 patterns. Tell the setup how much time
+          you have and where you stand; the plan orders patterns so prerequisites come first, fits your hours, explains every pick, and adapts:
+          a pass schedules a review, three failed submits bring an easier sibling and a retry. Stop, timeouts and load failures never count.
         </li>
         <li>
-          <strong>Practice:</strong> {exercises.length} graded drills: implement, repair a pitfall, apply an idiom, or complete a pattern. A drill
-          counts as solved only when a specific version of your code passes every case. Viewing the solution is tracked separately.
+          <strong>Run examples and Submit:</strong> Run examples checks only the worked examples and never records a solve. Submit checks every
+          case. A problem counts as solved only when a specific version of your code passes every case of the current problem version; viewing
+          the solution is tracked separately. Speed is not graded.
+        </li>
+        <li>
+          <strong>Python fluency:</strong> {exercises.length} short drills on the language itself: implement, repair a pitfall or apply an idiom.
+        </li>
+        <li>
+          <strong>Reference:</strong> {recipes.length} runnable recipes across {topics.length} topics, each with its exact output, complexity
+          where it matters, and the trap interviewers look for.
         </li>
         <li>
           <strong>Playground:</strong> free-form code with stdout, stderr, tracebacks and an optional stdin box.
@@ -117,16 +108,32 @@ export function AboutPage() {
         <li>Test cases and solutions ship with the page and are inspectable. Scores are feedback for you, not credentials.</li>
         <li>No packages are installed; the standard library covers interview needs. Saved and imported code never runs until you press Run.</li>
       </ul>
-      <h2>Your data</h2>
+      <h2>Sources and inspiration</h2>
       <p>
-        Progress, drafts and playground code are stored only in this browser (localStorage). There is no account, sync, analytics or server.
-        Clearing site data or using another browser starts fresh.
+        All problems, recipes, drills, tests and explanations here are original. Problem pages may link to a similar LeetCode problem for
+        further practice; no text or examples are copied. The following resources informed which idioms and pitfalls to cover; no content was
+        copied from them and their licenses are not changed by this project.
       </p>
+      <ul>
+        {SOURCES.map((s) => (
+          <li key={s.url}>
+            <a href={s.url}>{s.name}</a> — {s.note}
+          </li>
+        ))}
+      </ul>
+      <section className="data-card" aria-labelledby="data-h">
+        <h2 id="data-h">Your data</h2>
+        <p>
+          Your plan, progress, drafts and Playground code are stored only in this browser (localStorage). There is no account, sync, analytics
+          or server. Clearing site data or using another browser starts fresh, so export a backup to move between browsers.
+        </p>
       <div className="row">
-        <button type="button" className="btn" onClick={exportData}>
+        <button type="button" className="btn btn-secondary" onClick={exportData}>
+          <Icon name="download" />
           Export progress
         </button>
-        <button type="button" className="btn" onClick={() => fileInput.current?.click()}>
+        <button type="button" className="btn btn-secondary" onClick={() => fileInput.current?.click()}>
+          <Icon name="upload" />
           Import progress…
         </button>
         <input
@@ -142,7 +149,8 @@ export function AboutPage() {
             e.target.value = '';
           }}
         />
-        <button type="button" className="btn danger" onClick={clearAll}>
+        <button type="button" className="btn btn-quiet btn-danger-quiet" onClick={clearAll}>
+          <Icon name="trash" />
           Clear all local data…
         </button>
       </div>
@@ -151,18 +159,7 @@ export function AboutPage() {
           {message}
         </p>
       )}
-      <h2>Sources and inspiration</h2>
-      <p>
-        All recipes, drills, tests and explanations here are original. The following resources informed which idioms and pitfalls to cover; no
-        content was copied from them and their licenses are not changed by this project.
-      </p>
-      <ul>
-        {SOURCES.map((s) => (
-          <li key={s.url}>
-            <a href={s.url}>{s.name}</a> — {s.note}
-          </li>
-        ))}
-      </ul>
+      </section>
     </div>
   );
 }

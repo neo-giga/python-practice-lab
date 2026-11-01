@@ -28,5 +28,9 @@ export default defineConfig({
     { name: 'desktop-1440', use: { ...devices['Desktop Chrome'], viewport: { width: 1440, height: 900 } } },
     { name: 'firefox-desktop', use: { ...devices['Desktop Firefox'], viewport: { width: 1440, height: 900 } }, grep: /@runtime/ },
     { name: 'webkit-desktop', use: { ...devices['Desktop Safari'], viewport: { width: 1440, height: 900 } }, grep: /@runtime/ },
+    // Device EMULATION (not real devices): the full journey and the software-keyboard simulation.
+    { name: 'iphone-15-webkit', use: { ...devices['iPhone 15'] }, grep: /@device/ },
+    { name: 'ipad-gen7-webkit', use: { ...devices['iPad (gen 7)'] }, grep: /@device/ },
+    { name: 'pixel-7-chromium', use: { ...devices['Pixel 7'] }, grep: /@device/ },
   ],
 });

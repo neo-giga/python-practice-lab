@@ -1,0 +1,50 @@
+{
+  "app": "python-interview-lab",
+  "schema": 1,
+  "progress": {
+    "schema": 1,
+    "exercises": {
+      "two-sum-indexes": {
+        "attempts": 1,
+        "lastStatus": "passed",
+        "lastRunAt": 1793487300244,
+        "solved": {
+          "version": 2,
+          "at": 1793487300244,
+          "sourceHash": "475396e0",
+          "assisted": false
+        },
+        "hintsShown": 0,
+        "solutionViewed": false
+      },
+      "first-present": {
+        "attempts": 1,
+        "lastStatus": "failed",
+        "lastRunAt": 1793487301890,
+        "solved": null,
+        "hintsShown": 1,
+        "solutionViewed": false
+      }
+    }
+  },
+  "drafts": {
+    "first-present": {
+      "schema": 1,
+      "source": "def first_present(values):\n    return \"draft from live v1\"",
+      "exerciseVersion": 1,
+      "updatedAt": 1793487301078
+    },
+    "two-sum-indexes": {
+      "schema": 1,
+      "source": "def pair_indexes(nums, target):\n    seen = {}\n    for j, x in enumerate(nums):\n        if target - x in seen:\n            return [seen[target - x], j]\n        seen[x] = j\n    return []",
+      "exerciseVersion": 2,
+      "updatedAt": 1793487298777
+    },
+    "reverse-linked-list": {
+      "schema": 1,
+      "source": "def reverse_list(head):\n    # draft from live v1\n    return head",
+      "exerciseVersion": 1,
+      "updatedAt": 1793487302622
+    }
+  }
+}

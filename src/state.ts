@@ -2,10 +2,12 @@
 import { useSyncExternalStore, useEffect, useState } from 'react';
 import { SafeStore, type Warning } from './lib/storage';
 import { ProgressStore } from './lib/progress';
+import { PracticeStore } from './lib/practice';
 import { PythonRunner, type RunPhase, type RuntimeInfo } from './runtime/runner';
 
 export const store = SafeStore.fromWindow();
 export const progress = new ProgressStore(store);
+export const practice = new PracticeStore(store);
 
 export const runner = new PythonRunner({
   createWorker: () => new Worker(new URL('./runtime/python.worker.ts', import.meta.url), { type: 'module' }),
@@ -13,13 +15,20 @@ export const runner = new PythonRunner({
 });
 
 if (import.meta.env.DEV || new URLSearchParams(location.search).has('debug')) {
-  (window as unknown as { __pil: unknown }).__pil = { runner, progress, store };
+  (window as unknown as { __pil: unknown }).__pil = { runner, progress, store, practice };
 }
 
 export function useProgress() {
   return useSyncExternalStore(
     (fn) => progress.subscribe(fn),
     () => progress.snapshot,
+  );
+}
+
+export function usePractice() {
+  return useSyncExternalStore(
+    (fn) => practice.subscribe(fn),
+    () => practice.snapshot,
   );
 }
 

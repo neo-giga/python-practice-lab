@@ -6,23 +6,34 @@ import { Compartment, EditorState, Prec } from '@codemirror/state';
 import { indentWithTab, indentLess, indentMore } from '@codemirror/commands';
 import { python } from '@codemirror/lang-python';
 import { editorTheme } from './editorTheme';
+import { Icon } from './Icon';
+
+/** Height of a fixed/sticky element if it is currently displayed (0 otherwise). */
+function fixedHeight(selector: string): number {
+  const el = document.querySelector<HTMLElement>(selector);
+  if (!el) return 0;
+  const style = getComputedStyle(el);
+  return style.display === 'none' || (style.position !== 'fixed' && style.position !== 'sticky') ? 0 : el.getBoundingClientRect().height;
+}
 
 interface Props {
   value: string;
   onChange: (value: string) => void;
   onRun?: () => void;
+  /** Ctrl/⌘ + Shift + Enter (coding problems: Submit). */
+  onSubmit?: () => void;
   readOnly?: boolean;
   label: string;
   minLines?: number;
   testId?: string;
 }
 
-export function CodeEditor({ value, onChange, onRun, readOnly = false, label, minLines = 10, testId }: Props) {
+export function CodeEditor({ value, onChange, onRun, onSubmit, readOnly = false, label, minLines = 10, testId }: Props) {
   const host = useRef<HTMLDivElement>(null);
   const view = useRef<EditorView | null>(null);
   const ro = useRef(new Compartment());
-  const cb = useRef({ onChange, onRun });
-  cb.current = { onChange, onRun };
+  const cb = useRef({ onChange, onRun, onSubmit });
+  cb.current = { onChange, onRun, onSubmit };
 
   useEffect(() => {
     const v = new EditorView({
@@ -32,6 +43,13 @@ export function CodeEditor({ value, onChange, onRun, readOnly = false, label, mi
         extensions: [
           Prec.highest(
             keymap.of([
+              {
+                key: 'Mod-Shift-Enter',
+                run: () => {
+                  (cb.current.onSubmit ?? cb.current.onRun)?.();
+                  return true;
+                },
+              },
               {
                 key: 'Mod-Enter',
                 run: () => {
@@ -46,17 +64,29 @@ export function CodeEditor({ value, onChange, onRun, readOnly = false, label, mi
           python(),
           editorTheme,
           EditorView.lineWrapping,
-          ro.current.of([EditorState.readOnly.of(readOnly), EditorView.editable.of(!readOnly)]),
+          // Read-only blocks edits but keeps the editor focusable, so a run never throws focus out.
+          ro.current.of(EditorState.readOnly.of(readOnly)),
           EditorView.contentAttributes.of({ 'aria-label': label }),
           EditorView.theme({ '.cm-content': { minHeight: `${minLines * 1.5}em` } }),
           EditorView.updateListener.of((u) => {
             if (u.docChanged) cb.current.onChange(u.state.doc.toString());
           }),
+          // Keep the caret clear of the sticky top bar and the bottom dock (Run/Submit + tabs).
+          EditorView.scrollMargins.of(() => ({ top: fixedHeight('.topbar') + 8, bottom: fixedHeight('.ws-dock') + 12 })),
         ],
       }),
     });
     view.current = v;
+    // A software keyboard shrinks the (visual) viewport: bring the caret back into view.
+    const onResize = () => {
+      if (!v.hasFocus) return;
+      requestAnimationFrame(() => v.dispatch({ effects: EditorView.scrollIntoView(v.state.selection.main.head, { y: 'nearest' }) }));
+    };
+    window.addEventListener('resize', onResize);
+    window.visualViewport?.addEventListener('resize', onResize);
     return () => {
+      window.removeEventListener('resize', onResize);
+      window.visualViewport?.removeEventListener('resize', onResize);
       v.destroy();
       view.current = null;
     };
@@ -72,7 +102,7 @@ export function CodeEditor({ value, onChange, onRun, readOnly = false, label, mi
 
   useEffect(() => {
     view.current?.dispatch({
-      effects: ro.current.reconfigure([EditorState.readOnly.of(readOnly), EditorView.editable.of(!readOnly)]),
+      effects: ro.current.reconfigure(EditorState.readOnly.of(readOnly)),
     });
   }, [readOnly]);
 
@@ -93,8 +123,12 @@ export function CodeEditor({ value, onChange, onRun, readOnly = false, label, mi
     <div className="editor" data-testid={testId} data-readonly={readOnly || undefined}>
       <div ref={host} className="editor-host" />
       <div className="keybar" role="toolbar" aria-label="Insert characters">
-        <button type="button" onClick={() => run(indentMore)} disabled={readOnly} aria-label="Indent">⇥</button>
-        <button type="button" onClick={() => run(indentLess)} disabled={readOnly} aria-label="Dedent">⇤</button>
+        <button type="button" onClick={() => run(indentMore)} disabled={readOnly} aria-label="Indent">
+          <Icon name="indent" size={16} />
+        </button>
+        <button type="button" onClick={() => run(indentLess)} disabled={readOnly} aria-label="Dedent">
+          <Icon name="dedent" size={16} />
+        </button>
         {[':', '(', ')', '[', ']', '{', '}', '"', '_', '='].map((ch) => (
           <button type="button" key={ch} onClick={() => insert(ch)} disabled={readOnly} aria-label={`Insert ${ch}`}>
             {ch}

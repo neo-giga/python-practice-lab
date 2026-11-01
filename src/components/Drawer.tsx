@@ -1,7 +1,7 @@
 import { useEffect, useLayoutEffect, useRef, type ReactNode } from 'react';
 
-/** Modal side drawer for narrow screens: focus moves in, Escape closes, focus returns. */
-export function Drawer({ open, onClose, title, children }: { open: boolean; onClose: () => void; title: string; children: ReactNode }) {
+/** Modal drawer (side) or bottom sheet: focus moves in, Escape closes, focus returns. */
+export function Drawer({ open, onClose, title, children, variant = 'side' }: { open: boolean; onClose: () => void; title: string; children: ReactNode; variant?: 'side' | 'sheet' }) {
   const panel = useRef<HTMLDivElement>(null);
   const opener = useRef<Element | null>(null);
   // Parents pass a new onClose on every render; read the latest one from a ref so
@@ -45,16 +45,16 @@ export function Drawer({ open, onClose, title, children }: { open: boolean; onCl
 
   if (!open) return null;
   return (
-    <div className="drawer-root">
+    <div className={`drawer-root drawer-root-${variant}`}>
       <div className="drawer-backdrop" onClick={onClose} aria-hidden="true" />
-      <div className="drawer" role="dialog" aria-modal="true" aria-label={title} ref={panel}>
+      <div className={`drawer drawer-${variant}`} role="dialog" aria-modal="true" aria-label={title} ref={panel}>
         <div className="drawer-head">
           <h2>{title}</h2>
-          <button type="button" className="btn ghost" onClick={onClose}>
+          <button type="button" className="btn btn-quiet" onClick={onClose}>
             Close
           </button>
         </div>
-        <div className="drawer-body" onClick={(e) => (e.target as HTMLElement).closest('a') && onClose()}>
+        <div className="drawer-body" onClick={(e) => (e.target as HTMLElement).closest('a[href]') && onClose()}>
           {children}
         </div>
       </div>

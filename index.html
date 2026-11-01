@@ -3,14 +3,24 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <meta name="description" content="Python 3 idioms for coding interviews: a searchable cheatsheet, graded drills and a real CPython playground in your browser." />
-    <meta name="color-scheme" content="light" />
-    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%230f766e'/%3E%3Ctext x='16' y='22' font-family='monospace' font-size='16' font-weight='700' text-anchor='middle' fill='white'%3Epy%3C/text%3E%3C/svg%3E" />
-    <title>Python Interview Lab</title>
+    <meta name="description" content="Python Practice Lab: a personal plan of original LeetCode-style problems, graded by real CPython in your browser, plus Python fluency drills, a reference and a playground." />
+    <meta name="color-scheme" content="light dark" />
+    <meta name="theme-color" content="#fafafa" />
+    <script>
+      // Apply a saved theme before first paint (no flash). Mirrors applyTheme() in src/components/ui.tsx.
+      try {
+        var t = JSON.parse(localStorage.getItem('pil:v1:theme') || '"system"');
+        if (t === 'light' || t === 'dark') document.documentElement.setAttribute('data-theme', t);
+        var dark = t === 'dark' || (t !== 'light' && matchMedia('(prefers-color-scheme: dark)').matches);
+        document.querySelector('meta[name="theme-color"]').setAttribute('content', dark ? '#0b0b0c' : '#fafafa');
+      } catch (e) {}
+    </script>
+    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%233e63dd'/%3E%3Cpath d='M10.5 12.5 14 16l-3.5 3.5M16.5 20H22' fill='none' stroke='white' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E" />
+    <title>Python Practice Lab</title>
   </head>
   <body>
     <div id="root"></div>
-    <noscript>Python Interview Lab needs JavaScript. The full cheatsheet is also available as docs/CHEATSHEET.md in the repository.</noscript>
+    <noscript>Python Practice Lab needs JavaScript. The full cheatsheet is also available as docs/CHEATSHEET.md in the repository.</noscript>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>

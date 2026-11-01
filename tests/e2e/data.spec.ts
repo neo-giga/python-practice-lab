@@ -13,7 +13,7 @@ async function writeDraft(page: Page, id: string, code: string) {
   await page.goto(`#/practice/${id}`);
   await setEditor(page, code);
   await page.goto('#/about'); // leaving the drill flushes its draft
-  await expect(page.getByRole('heading', { level: 1, name: 'About Python Interview Lab' })).toBeVisible();
+  await expect(page.getByRole('heading', { level: 1, name: 'About Python Practice Lab' })).toBeVisible();
 }
 
 async function importFile(page: Page, path: string, answer: 'accept' | 'dismiss' | 'none') {
@@ -94,7 +94,7 @@ test.describe('Backup import', () => {
   });
 });
 
-test.describe('Learn search and navigation', () => {
+test.describe('Reference search and navigation', () => {
   // The search box writes ?q= to the URL after a 250 ms debounce. On a busy main
   // thread (a loaded CI runner) the router can react to a newer navigation later
   // than that timer fires. Injected here: the router's next real hashchange is
@@ -121,14 +121,14 @@ test.describe('Learn search and navigation', () => {
       );
     });
     await page.goto('#/learn');
-    await expect(page.getByRole('heading', { level: 1, name: 'Cheatsheet' })).toBeVisible();
+    await expect(page.getByRole('heading', { level: 1, name: 'Reference' })).toBeVisible();
     await page.getByTestId('recipe-search').fill('deque');
     await page.evaluate(() => {
       (window as unknown as { __holdNextHashChange?: boolean }).__holdNextHashChange = true;
       location.hash = '#/practice/digit-sum';
     });
     await expect(page.getByTestId('run')).toBeVisible();
-    await expect(page).toHaveURL(/#\/practice\/digit-sum$/);
+    await expect(page).toHaveURL(/#\/fluency\/digit-sum$/); // the legacy link redirected
     expect(w.errors).toEqual([]);
   });
 

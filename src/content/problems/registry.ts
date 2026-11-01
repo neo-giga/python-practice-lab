@@ -10,6 +10,15 @@ export { upgradedProblems } from './upgraded';
 
 // --- Writer B (arrays-hashing, two-pointers, sliding-window, stack, binary-search,
 //     linked-list, intervals, greedy, math) ---
+export { bArraysHashingProblems } from './b-arrays-hashing';
+export { bTwoPointerProblems } from './b-two-pointers';
+export { bSlidingWindowProblems } from './b-sliding-window';
+export { bStackProblems } from './b-stack';
+export { bBinarySearchProblems } from './b-binary-search';
+export { bLinkedListProblems } from './b-linked-list';
+export { bIntervalProblems } from './b-intervals';
+export { bGreedyProblems } from './b-greedy';
+export { bMathProblems } from './b-math';
 
 // --- Writer C (trees, tries, heap, backtracking, graphs, topo-sort, shortest-paths,
 //     dp-1d, dp-2d) ---

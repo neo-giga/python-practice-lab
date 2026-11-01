@@ -1,6 +1,6 @@
 // The skills-track preview journey on the production build with the real Pyodide runtime:
 // setup → plan → Today → session (reminder card → drill: wrong, then right) → reload keeps
-// progress → cheatsheet search → skill page.
+// progress → cheatsheet search → skill page → algorithm templates (cheatsheet section, template page, drill to a pass).
 import { execSync } from 'node:child_process';
 import { readFileSync } from 'node:fs';
 import { expect, test } from '@playwright/test';
@@ -96,6 +96,31 @@ test.describe('Skills journey @device', () => {
     expect(await lc.count()).toBeGreaterThanOrEqual(3);
     await expectNoHorizontalOverflow(page);
     await shot(page, info, 'skills-skill-page');
+
+    // Algorithm templates: the cheatsheet section, a template skill page and one drill to a pass.
+    await page.goto('./#/cheatsheet');
+    const templates = page.getByTestId('cheat-templates');
+    await templates.scrollIntoViewIfNeeded();
+    await expect(templates.getByRole('heading', { level: 2, name: 'Algorithm templates' })).toBeVisible();
+    expect(await templates.getByTestId('cheat-card').count()).toBeGreaterThanOrEqual(18);
+    await templates.locator('[data-testid=cheat-card][data-skill=algo-bfs]').scrollIntoViewIfNeeded();
+    await shot(page, info, 'skills-cheatsheet-templates');
+    await templates.locator('[data-testid=cheat-card][data-skill=algo-bfs] .cheat-title a').click();
+    await expect(page.getByTestId('skill-page')).toBeVisible();
+    await expect(page.getByTestId('skill-page')).toContainText('Algorithm template');
+    await expect(page.getByTestId('skill-page')).toContainText('Grind 75');
+    await expect(page.getByTestId('apply-links').getByRole('link').first()).toBeVisible();
+    await expectNoHorizontalOverflow(page);
+    await shot(page, info, 'skills-template-page');
+    await page.getByTestId('skill-drill').first().getByRole('link').click();
+    const algoDrill = page.getByTestId('drill');
+    await expect(algoDrill).toBeVisible();
+    const algoId = (await algoDrill.getAttribute('data-drill-id'))!;
+    await setEditor(page, drillById(algoId)!.solution);
+    await page.getByTestId('run').click();
+    await expect(page.getByTestId('solve-state')).toHaveText('Solved', { timeout: 60_000 });
+    await expectNoHorizontalOverflow(page);
+    await shot(page, info, 'skills-template-drill');
 
     expect(w.errors).toEqual([]);
   });

@@ -54,14 +54,7 @@ export interface Skill {
 const lc = (n: number, slug: string) => ({ lc: n, slug });
 /** Measured share of solutions using the skill (src/content/frequency.json, generated; see docs/FREQUENCY.md). */
 const freq = (id: string): number => (frequency.skills as Record<string, { avg: number }>)[id].avg;
-/**
- * Interview weight of an algorithm template: share of the interview list's problems tagged with any of
- * `tags` (frequency.json `algorithms`; tag shares are summed, an upper bound on the union, capped at 1).
- */
-export const interviewShare = (...tags: string[]): number => {
-  const a = frequency.algorithms as Record<string, { share: number }>;
-  return Math.min(1, Math.round(tags.reduce((t, k) => t + (a[k]?.share ?? 0), 0) * 1e4) / 1e4);
-};
+export { interviewShare } from './interview-weight';
 
 const coreSkills: Skill[] = [
   // ------------------------------------------------------------------ Tier 1
@@ -113,7 +106,7 @@ export const TIER_LABEL: Record<SkillTier, string> = { 1: 'Must-know', 2: 'Commo
 
 /** "used in 24% of solutions" (or "must-know trap" when frequency is null); templates: share of Grind 75 problems. */
 export function frequencyLabel(s: Skill): string {
-  if (strandOf(s) === 'algorithm') return s.frequency === null ? 'interview staple' : `in ${Math.round(s.frequency * 100)}% of Grind 75 interview problems`;
+  if (strandOf(s) === 'algorithm') return s.frequency === null ? 'not tagged in Grind 75; advanced template' : `in ${Math.round(s.frequency * 100)}% of Grind 75 interview problems`;
   return s.frequency === null ? 'must-know trap' : `used in ${Math.round(s.frequency * 100)}% of solutions`;
 }
 

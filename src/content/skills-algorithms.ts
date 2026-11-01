@@ -2,19 +2,22 @@
 //
 // Each skill is a canonical Python template to write from memory: its cheatsheet `syntax` is the
 // template itself. Ids are prefixed `algo-` and, like src/content/skills.ts, are frozen once
-// published. `frequency` stays null here: interview weights come from the Grind 169 topic list and
-// are filled in at integration. Appended to `skills` by the hook in skills.ts.
+// published. `frequency` is the interview weight: the share of Grind 75 problems carrying the
+// template's topic tags (interviewShare; null when no tag matches). Tiers follow the same thresholds
+// as the syntax skills (>= 15% / 5-15% / < 5%). Appended to `skills` by the hook in skills.ts.
+import { interviewShare } from './interview-weight';
 import type { Skill } from './skills';
 
 const lc = (n: number, slug: string) => ({ lc: n, slug });
 
 export const algorithmSkills: Skill[] = [
-  // ------------------------------------------------------------------ Tier 1 (core templates)
+  // ------------------------------------------------------------------ Core templates (tiers follow interview weight)
   {
     id: 'algo-binary-search',
     title: 'Binary search template (lower bound, search on the answer)',
-    tier: 1,
-    frequency: null,
+    tier: 2,
+    frequency: interviewShare('binary-search'),
+    patterns: ['binary-search'],
     summary: 'Half-open [lo, hi) loop that finds the first index where a condition turns true, on a sorted list or on a range of answers.',
     recipeIds: ['binary-search-template', 'binary-search-answer', 'bisect-basics'],
     leetcode: [lc(704, 'binary-search'), lc(35, 'search-insert-position'), lc(34, 'find-first-and-last-position-of-element-in-sorted-array'), lc(875, 'koko-eating-bananas'), lc(153, 'find-minimum-in-rotated-sorted-array')],
@@ -31,6 +34,7 @@ export const algorithmSkills: Skill[] = [
         '    return lo                    # len(a) when every item < x',
         '',
         '# search on the answer: smallest k in [lo, hi) with ok(k) true',
+        'lo, hi, ok = 1, 100, lambda k: k * k >= 50   # example: smallest k with k*k >= 50',
         'while lo < hi:',
         '    mid = (lo + hi) // 2',
         '    if ok(mid): hi = mid',
@@ -44,8 +48,9 @@ export const algorithmSkills: Skill[] = [
   {
     id: 'algo-sliding-window',
     title: 'Sliding window template (grow, shrink, record)',
-    tier: 1,
-    frequency: null,
+    tier: 3,
+    frequency: interviewShare('sliding-window'),
+    patterns: ['sliding-window'],
     summary: 'A variable window over contiguous items: add on the right, shrink from the left with `while` until valid, record the answer.',
     recipeIds: ['sliding-window', 'counter'],
     leetcode: [lc(3, 'longest-substring-without-repeating-characters'), lc(209, 'minimum-size-subarray-sum'), lc(424, 'longest-repeating-character-replacement'), lc(904, 'fruit-into-baskets'), lc(76, 'minimum-window-substring')],
@@ -74,8 +79,9 @@ export const algorithmSkills: Skill[] = [
   {
     id: 'algo-bfs',
     title: 'BFS template (deque, visited at enqueue)',
-    tier: 1,
-    frequency: null,
+    tier: 2,
+    frequency: interviewShare('breadth-first-search'),
+    patterns: ['graphs', 'trees'],
     summary: 'Breadth-first search with a deque: mark a node when you enqueue it, so each node is queued once and distances are shortest hop counts.',
     recipeIds: ['grid-bfs', 'deque-basics'],
     leetcode: [lc(994, 'rotting-oranges'), lc(1091, 'shortest-path-in-binary-matrix'), lc(542, '01-matrix'), lc(127, 'word-ladder'), lc(102, 'binary-tree-level-order-traversal')],
@@ -105,13 +111,15 @@ export const algorithmSkills: Skill[] = [
   {
     id: 'algo-dfs',
     title: 'DFS template (recursive and iterative stack)',
-    tier: 1,
-    frequency: null,
+    tier: 2,
+    frequency: interviewShare('depth-first-search'),
+    patterns: ['graphs'],
     summary: 'Depth-first search: a recursive helper with a seen set, or the same walk with an explicit stack; flood fill and connected components.',
     recipeIds: ['dfs-iterative', 'recursion-limit', 'closures-nonlocal'],
     leetcode: [lc(200, 'number-of-islands'), lc(733, 'flood-fill'), lc(695, 'max-area-of-island'), lc(547, 'number-of-provinces'), lc(133, 'clone-graph')],
     cheat: {
       syntax: [
+        'graph, start = {0: [1], 1: [0], 2: []}, 0   # adjacency lists',
         'def dfs(node):                       # recursive',
         '    seen.add(node)',
         '    for nxt in graph[node]:',
@@ -136,8 +144,9 @@ export const algorithmSkills: Skill[] = [
   {
     id: 'algo-backtracking',
     title: 'Backtracking template (choose, recurse, un-choose)',
-    tier: 1,
-    frequency: null,
+    tier: 2,
+    frequency: interviewShare('backtracking'),
+    patterns: ['backtracking'],
     summary: 'Build answers in one `path` list: append a choice, recurse, pop it; record a copy when the path is complete.',
     recipeIds: ['backtracking', 'itertools-core', 'closures-nonlocal'],
     leetcode: [lc(78, 'subsets'), lc(46, 'permutations'), lc(77, 'combinations'), lc(39, 'combination-sum'), lc(79, 'word-search')],
@@ -165,18 +174,20 @@ export const algorithmSkills: Skill[] = [
   {
     id: 'algo-two-pointers',
     title: 'Two pointers template (opposite ends, read/write)',
-    tier: 1,
-    frequency: null,
+    tier: 2,
+    frequency: interviewShare('two-pointers'),
+    patterns: ['two-pointers'],
     summary: 'Two indexes that move toward each other on sorted data, or a read index and a write index that compact a list in place.',
     recipeIds: ['two-pointers-sorted', 'inplace-none'],
     leetcode: [lc(167, 'two-sum-ii-input-array-is-sorted'), lc(125, 'valid-palindrome'), lc(26, 'remove-duplicates-from-sorted-array'), lc(283, 'move-zeroes'), lc(15, '3sum')],
     cheat: {
       syntax: [
+        'a, target, keep = [1, 2, 4, 7], 6, lambda v: v > 1',
         '# opposite ends (sorted a): pair with a given sum',
         'i, j = 0, len(a) - 1',
         'while i < j:',
         '    s = a[i] + a[j]',
-        '    if s == target: return [i, j]',
+        '    if s == target: break            # found: a[i] + a[j] == target',
         '    if s < target: i += 1',
         '    else: j -= 1',
         '',
@@ -196,12 +207,14 @@ export const algorithmSkills: Skill[] = [
     id: 'algo-tree-traversal',
     title: 'Tree traversal templates (pre/in/post, iterative inorder, level order)',
     tier: 1,
-    frequency: null,
+    frequency: interviewShare('binary-tree', 'binary-search-tree'),
+    patterns: ['trees'],
     summary: 'Recursive pre/in/post order, the stack-based inorder loop, and level order one level at a time.',
     recipeIds: ['listnode-treenode', 'deque-basics', 'recursion-limit'],
     leetcode: [lc(94, 'binary-tree-inorder-traversal'), lc(144, 'binary-tree-preorder-traversal'), lc(102, 'binary-tree-level-order-traversal'), lc(98, 'validate-binary-search-tree'), lc(230, 'kth-smallest-element-in-a-bst')],
     cheat: {
       syntax: [
+        'root = None                # a TreeNode (val, left, right), or None',
         'def preorder(root):        # inorder / postorder: move [root.val]',
         '    return [root.val] + preorder(root.left) + preorder(root.right) if root else []',
         'def inorder_iter(root):',
@@ -226,8 +239,9 @@ export const algorithmSkills: Skill[] = [
   {
     id: 'algo-dp',
     title: 'Dynamic programming template (memo → table, 1-D and 2-D)',
-    tier: 1,
-    frequency: null,
+    tier: 2,
+    frequency: interviewShare('dynamic-programming'),
+    patterns: ['dp-1d', 'dp-2d'],
     summary: 'Write the recurrence as a memoised function, then turn it into a bottom-up table indexed the same way.',
     recipeIds: ['dp-table', 'cache-memo', 'aliasing-copies'],
     leetcode: [lc(70, 'climbing-stairs'), lc(198, 'house-robber'), lc(322, 'coin-change'), lc(1143, 'longest-common-subsequence'), lc(62, 'unique-paths')],
@@ -256,17 +270,20 @@ export const algorithmSkills: Skill[] = [
   {
     id: 'algo-hashmap-counting',
     title: 'Hash map templates (seen-dict, counting, prefix sum + dict)',
-    tier: 1,
-    frequency: null,
+    tier: 2,
+    frequency: interviewShare('hash-table', 'hashing', 'anagram', 'prefix-sum'),
+    patterns: ['arrays-hashing', 'prefix-sums'],
     summary: 'Look up a complement in a dict of earlier values, count with Counter, and count subarrays with a dict of prefix sums.',
     recipeIds: ['prefix-hash', 'prefix-sum', 'counter', 'dict-access', 'defaultdict'],
     leetcode: [lc(1, 'two-sum'), lc(560, 'subarray-sum-equals-k'), lc(242, 'valid-anagram'), lc(49, 'group-anagrams'), lc(525, 'contiguous-array')],
     cheat: {
       syntax: [
+        'from collections import Counter',
+        'nums, target, k, words = [2, 7, 11, 15], 9, 9, ["a", "b", "a"]',
         'seen = {}                              # value -> index',
         'for i, x in enumerate(nums):',
         '    if target - x in seen:',
-        '        return [seen[target - x], i]',
+        '        pair = [seen[target - x], i]; break',
         '    seen[x] = i                        # insert after the check',
         '',
         'count = Counter(words)                 # count[w] is 0 when absent',
@@ -283,12 +300,13 @@ export const algorithmSkills: Skill[] = [
       complexity: 'O(n) average time, O(n) space.',
     },
   },
-  // ------------------------------------------------------------------ Tier 2 (common templates)
+  // ------------------------------------------------------------------ Common templates
   {
     id: 'algo-monotonic-stack',
     title: 'Monotonic stack template (next greater / smaller)',
-    tier: 2,
-    frequency: null,
+    tier: 3,
+    frequency: interviewShare('monotonic-stack'),
+    patterns: ['stack'],
     summary: 'A stack of indexes whose values stay sorted; each new item pops every index it answers.',
     recipeIds: ['monotonic-stack', 'stack-brackets', 'list-basics'],
     leetcode: [lc(739, 'daily-temperatures'), lc(496, 'next-greater-element-i'), lc(503, 'next-greater-element-ii'), lc(901, 'online-stock-span'), lc(84, 'largest-rectangle-in-histogram')],
@@ -312,7 +330,8 @@ export const algorithmSkills: Skill[] = [
     id: 'algo-heap-topk',
     title: 'Heap templates (top-k, k-way merge)',
     tier: 2,
-    frequency: null,
+    frequency: interviewShare('heap'),
+    patterns: ['heap'],
     summary: 'Keep a size-k min-heap to find the k largest; merge sorted lists by always popping the smallest head.',
     recipeIds: ['heap-basics', 'heap-topk', 'heap-ties', 'max-heap'],
     leetcode: [lc(215, 'kth-largest-element-in-an-array'), lc(347, 'top-k-frequent-elements'), lc(973, 'k-closest-points-to-origin'), lc(23, 'merge-k-sorted-lists'), lc(295, 'find-median-from-data-stream')],
@@ -342,8 +361,9 @@ export const algorithmSkills: Skill[] = [
   {
     id: 'algo-intervals',
     title: 'Intervals template (sort + merge, sweep)',
-    tier: 2,
-    frequency: null,
+    tier: 3,
+    frequency: interviewShare('interval'),
+    patterns: ['intervals'],
     summary: 'Sort by start and extend the last merged interval, or sweep sorted start/end events to count overlaps.',
     recipeIds: ['sort-key', 'sort-multikey'],
     leetcode: [lc(56, 'merge-intervals'), lc(57, 'insert-interval'), lc(435, 'non-overlapping-intervals'), lc(252, 'meeting-rooms'), lc(253, 'meeting-rooms-ii')],
@@ -359,6 +379,7 @@ export const algorithmSkills: Skill[] = [
         '    return out',
         '',
         '# sweep: +1 at each start, -1 at each end; ends sort first at a tie',
+        'iv = [(0, 30), (5, 10), (15, 20)]',
         'events = sorted([(s, 1) for s, e in iv] + [(e, -1) for s, e in iv])',
         'rooms = best = 0',
         'for _, d in events:',
@@ -373,7 +394,8 @@ export const algorithmSkills: Skill[] = [
     id: 'algo-linked-list',
     title: 'Linked list templates (dummy head, reverse, fast/slow)',
     tier: 2,
-    frequency: null,
+    frequency: interviewShare('linked-list'),
+    patterns: ['linked-list'],
     summary: 'Rewire `next` pointers safely: a dummy head for building and deleting, three-pointer reversal, and fast/slow pointers.',
     recipeIds: ['listnode-treenode', 'unpacking'],
     leetcode: [lc(206, 'reverse-linked-list'), lc(876, 'middle-of-the-linked-list'), lc(141, 'linked-list-cycle'), lc(19, 'remove-nth-node-from-end-of-list'), lc(203, 'remove-linked-list-elements')],
@@ -403,8 +425,9 @@ export const algorithmSkills: Skill[] = [
   {
     id: 'algo-topo-sort',
     title: 'Topological sort template (Kahn)',
-    tier: 2,
-    frequency: null,
+    tier: 3,
+    frequency: interviewShare('topo-sort'),
+    patterns: ['topo-sort'],
     summary: 'Count incoming edges, start from every node with none, and remove nodes layer by layer; leftovers mean a cycle.',
     recipeIds: ['topo-sort', 'deque-basics', 'defaultdict'],
     leetcode: [lc(207, 'course-schedule'), lc(210, 'course-schedule-ii'), lc(2115, 'find-all-possible-recipes-from-given-supplies'), lc(1136, 'parallel-courses'), lc(269, 'alien-dictionary')],
@@ -434,13 +457,15 @@ export const algorithmSkills: Skill[] = [
   {
     id: 'algo-union-find',
     title: 'Union-find template (path compression, union by size)',
-    tier: 2,
-    frequency: null,
+    tier: 3,
+    frequency: interviewShare('union-find'),
+    patterns: ['union-find'],
     summary: 'A parent array where `find` walks to the root (shortening the path) and `union` links the smaller root under the larger.',
     recipeIds: ['union-find'],
     leetcode: [lc(547, 'number-of-provinces'), lc(684, 'redundant-connection'), lc(323, 'number-of-connected-components-in-an-undirected-graph'), lc(721, 'accounts-merge'), lc(990, 'satisfiability-of-equality-equations')],
     cheat: {
       syntax: [
+        'n = 5',
         'parent = list(range(n))',
         'size = [1] * n',
         'def find(x):',
@@ -467,6 +492,7 @@ export const algorithmSkills: Skill[] = [
     title: "Dijkstra template (heapq, stale-entry skip)",
     tier: 2,
     frequency: null,
+    patterns: ['shortest-paths'],
     summary: 'Shortest paths with non-negative weights: pop the closest node from a heap, skip outdated entries, relax its edges.',
     recipeIds: ['heap-basics', 'heap-ties', 'big-ints-inf'],
     leetcode: [lc(743, 'network-delay-time'), lc(1631, 'path-with-minimum-effort'), lc(1514, 'path-with-maximum-probability'), lc(778, 'swim-in-rising-water'), lc(1976, 'number-of-ways-to-arrive-at-destination')],
@@ -493,12 +519,13 @@ export const algorithmSkills: Skill[] = [
     },
   },
 
-  // ------------------------------------------------------------------ Tier 3 (advanced templates)
+  // ------------------------------------------------------------------ Advanced templates
   {
     id: 'algo-trie',
     title: 'Trie template (dict of dicts)',
     tier: 3,
-    frequency: null,
+    frequency: interviewShare('trie'),
+    patterns: ['tries'],
     summary: 'A prefix tree of nested dicts, one level per character, with an end-of-word marker.',
     recipeIds: ['defaultdict', 'class-basics', 'dict-access'],
     leetcode: [lc(208, 'implement-trie-prefix-tree'), lc(211, 'design-add-and-search-words-data-structure'), lc(212, 'word-search-ii'), lc(648, 'replace-words'), lc(1268, 'search-suggestions-system')],
@@ -529,12 +556,14 @@ export const algorithmSkills: Skill[] = [
     id: 'algo-bit-tricks',
     title: 'Bit tricks (x & (x - 1), XOR cancel, subsets by mask)',
     tier: 3,
-    frequency: null,
+    frequency: interviewShare('binary'),
+    patterns: ['bit-manipulation'],
     summary: 'Clear or isolate the lowest set bit, cancel pairs with XOR, and enumerate subsets as bit masks.',
     recipeIds: ['bit-ops', 'negative-bits', 'binary-strings'],
     leetcode: [lc(136, 'single-number'), lc(191, 'number-of-1-bits'), lc(231, 'power-of-two'), lc(268, 'missing-number'), lc(338, 'counting-bits')],
     cheat: {
       syntax: [
+        'x, i, a = 12, 2, 5',
         'x & (x - 1)       # clear the lowest set bit (0 for powers of two, and for 0)',
         'x & -x            # keep only the lowest set bit',
         '(x >> i) & 1      # bit i of x',

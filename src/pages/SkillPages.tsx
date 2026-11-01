@@ -2,6 +2,7 @@
 import { useState } from 'react';
 import { codingProblems } from '../content/index';
 import { patternById } from '../content/patterns';
+import { algorithmApplyLinks } from '../content/skills-algorithms';
 import { DRILL_KIND_LABEL } from '../content/drill-schema';
 import { drillById, drillsForSkill } from '../content/drill-bank';
 import { DIFFICULTY_ORDER } from '../content/problem-schema';
@@ -24,7 +25,7 @@ const STATUS_MARK = { done: 'solved', 'in-progress': 'attempted', todo: 'unsolve
 export function FreqBadge({ s }: { s: Skill }) {
   return (
     <span className={`freq ${strandOf(s) === 'algorithm' ? 'freq-algo' : `freq-t${s.tier}`}`} title={frequencyLabel(s)}>
-      {s.frequency === null ? (strandOf(s) === 'algorithm' ? 'core' : 'trap') : `${Math.round(s.frequency * 100)}%`}
+      {s.frequency === null ? (strandOf(s) === 'algorithm' ? 'adv.' : 'trap') : `${Math.round(s.frequency * 100)}%`}
     </span>
   );
 }
@@ -345,10 +346,14 @@ export function SkillPage({ id }: { id: string }) {
   }
   const drills = drillsForSkill(s.id);
   const isTemplate = strandOf(s) === 'algorithm';
-  const apply = codingProblems
-    .filter((q) => (isTemplate ? (s.patterns ?? []).includes(q.pattern) : q.skills?.includes(s.id)))
-    .sort((a, b) => DIFFICULTY_ORDER[a.difficulty] - DIFFICULTY_ORDER[b.difficulty] || a.priority - b.priority || a.title.localeCompare(b.title))
-    .slice(0, 5);
+  // Templates: the curated problem list (algorithmApplyLinks), else problems of the template's patterns.
+  const curated = isTemplate ? algorithmApplyLinks[s.id] : undefined;
+  const apply = curated
+    ? curated.map((pid) => codingProblems.find((q) => q.id === pid)).filter((q) => q !== undefined).slice(0, 5)
+    : codingProblems
+        .filter((q) => (isTemplate ? (s.patterns ?? []).includes(q.pattern) : q.skills?.includes(s.id)))
+        .sort((a, b) => DIFFICULTY_ORDER[a.difficulty] - DIFFICULTY_ORDER[b.difficulty] || a.priority - b.priority || a.title.localeCompare(b.title))
+        .slice(0, 5);
   return (
     <div className="page skill-page" data-testid="skill-page">
       <a className="back-link" href={href({ page: 'cheatsheet' })}>
@@ -409,7 +414,7 @@ export function SkillPage({ id }: { id: string }) {
               ? `Original practice problems in this lab that use the template (${(s.patterns ?? []).map((pid) => patternById.get(pid)?.title ?? pid).join(', ')}).`
               : 'Original practice problems in this lab that need the skill.'}
           </p>
-          <ul className="item-list">
+          <ul className="item-list" data-testid="apply-links">
             {apply.map((q) => (
               <li key={q.id} className="item-row">
                 <div className="item-main">

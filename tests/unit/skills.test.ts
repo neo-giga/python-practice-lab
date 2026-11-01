@@ -56,3 +56,25 @@ describe('skill drills', () => {
     expect(validateDrill({ ...structuredClone(skillDrills[0]), id: recipes[0].id }, taken).join('\n')).toMatch(/already used/);
   });
 });
+
+describe('algorithm templates (algo-* strand)', () => {
+  it('every Apply-it link is a registered problem; every template has a cheat and enough drills', async () => {
+    const { algorithmApplyLinks } = await import('../../src/content/skills-algorithms');
+    const { drillsForSkill, requiredDrills } = await import('../../src/content/drill-bank');
+    const { strandOf } = await import('../../src/content/skills');
+    const problemIds = new Set(codingProblems.map((p) => p.id));
+    for (const [sid, ids] of Object.entries(algorithmApplyLinks)) {
+      expect(isSkillId(sid), sid).toBe(true);
+      for (const id of ids) expect(problemIds.has(id), `${sid} -> ${id}`).toBe(true);
+    }
+    const templates = skills.filter((s) => s.id.startsWith('algo-'));
+    expect(templates.length).toBeGreaterThanOrEqual(18);
+    for (const s of templates) {
+      expect(strandOf(s), s.id).toBe('algorithm');
+      expect(s.cheat?.syntax.trim().length, s.id).toBeGreaterThan(0);
+      expect(drillsForSkill(s.id).length, s.id).toBeGreaterThanOrEqual(requiredDrills(s.tier));
+      // Never labelled as a trap.
+      expect(frequencyLabel(s), s.id).not.toContain('trap');
+    }
+  });
+});

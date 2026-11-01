@@ -103,6 +103,8 @@ export interface CodingProblem {
   /** Minimum CPython version the reference needs (omit for 3.11-compatible code). */
   minPython?: string;
   legacy?: LegacyOrigin;
+  /** Skill ids (src/content/skills.ts) the problem exercises; shown as "Apply it" links on skill pages. */
+  skills?: string[];
 }
 
 /** Example cases are the cases whose `args` equal an example's `input`, in example order. */

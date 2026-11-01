@@ -16,5 +16,6 @@ export { listBasicsDrills } from './b-list-basics';
 export { builtinsAggregateDrills } from './b-builtins-aggregate';
 export { enumerateZipDrills } from './b-enumerate-zip';
 export { comprehensionsDrills } from './b-comprehensions';
+export { intMathDrills } from './b-int-math';
 
 // --- Writer C (Tier 2-3 skills and traps) ---

@@ -197,6 +197,9 @@ export function useRoute(): Route {
   useEffect(() => {
     const on = () => setRoute(current());
     window.addEventListener('hashchange', on);
+    // Re-sync once: a hash change between the first render and this subscription fired no event we heard.
+    const now = current();
+    setRoute((prev) => (href(prev) === href(now) ? prev : now));
     return () => window.removeEventListener('hashchange', on);
   }, []);
   return route;

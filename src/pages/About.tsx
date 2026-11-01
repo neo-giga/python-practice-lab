@@ -4,6 +4,7 @@ import { applyImport, buildBackup, stageImport, type StagedImport } from '../lib
 import { Icon } from '../components/Icon';
 import { emptyProgress } from '../lib/progress';
 import { practice, progress, store } from '../state';
+import { reloadSkillPrefs } from '../lib/skills-state';
 import { PYODIDE_VERSION, EXPECTED_PYTHON_VERSION } from '../runtime/versions';
 import { DEFAULT_EXEC_TIMEOUT_MS } from '../runtime/runner';
 
@@ -48,6 +49,7 @@ export function AboutPage() {
     applyImport(store, staged);
     progress.replaceAll(staged.progress);
     practice.reload();
+    reloadSkillPrefs();
     const n = staged.drafts.length;
     setMessage(`Imported progress for ${Object.keys(staged.progress.exercises).length} problems and drills and ${n} ${n === 1 ? 'draft' : 'drafts'}. Imported code is never run automatically.`);
   };
@@ -57,6 +59,7 @@ export function AboutPage() {
     for (const name of store.names()) store.remove(name);
     progress.replaceAll(emptyProgress());
     practice.reload();
+    reloadSkillPrefs();
     setMessage('All local data for this site was cleared.');
   };
 
@@ -64,13 +67,26 @@ export function AboutPage() {
     <div className="prose-page">
       <h1>About Python Practice Lab</h1>
       <p className="lede">
-        A practice lab for Python. The first track is LeetCode-style coding problems in a plan built from your preferences; the problems are
-        original and the point of each is the Python that expresses the algorithm cleanly.
+        A practice lab for Python. The first track, Coding interview, drills the Python skills that LeetCode-style solutions use most, then
+        the algorithm templates, in short daily sessions. Everything is original.
       </p>
+      <section className="callout" aria-labelledby="preview-h" data-testid="preview-note">
+        <h2 id="preview-h">Preview</h2>
+        <p>This is an early preview of the skills-based Coding interview track, to check the direction.</p>
+        <p>
+          <strong>In:</strong> setup, a plan of Python skills ordered by how often interview solutions use them, Today, sessions (a reminder card,
+          then graded drills with hints and the failing case), progress saved in this browser, the searchable cheatsheet and a page per skill.
+          Algorithm templates (BFS, DFS, binary search…) appear as they are added.
+        </p>
+        <p>
+          <strong>Not yet:</strong> links from skills to the practice problems, more drills per skill, the full algorithm-template set,
+          printing polish and the final frequency numbers (current numbers weight solutions to the Grind 75 interview list).
+        </p>
+      </section>
       <h2>How it works</h2>
       <ul>
         <li>
-          <strong>Coding interview track:</strong> {codingProblems.length} original problems across 22 patterns. Tell the setup how much time
+          <strong>Practice problems (linked from skills later):</strong> {codingProblems.length} original problems across 22 patterns. Tell the setup how much time
           you have and where you stand; the plan orders patterns so prerequisites come first, fits your hours, explains every pick, and adapts:
           a pass schedules a review, three failed submits bring an easier sibling and a retry. Stop, timeouts and load failures never count.
         </li>

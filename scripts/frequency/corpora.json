@@ -1,0 +1,105 @@
+{
+  "_note": "Inputs for scripts/frequency/freq.py. Counted corpora are measured; references are listed in the output and docs only. 'dir' is relative to the cache directory (--cache, default ~/.hermes/cache/scratch/py-freq). 'commit' pins the clone that was measured; files are matched to the interview list by slug when they have one, else by id; freq.py refuses a clone at another commit unless --update-pins. 'key' says how a file maps to a LeetCode problem: 'id' = LeetCode number, 'slug' = LeetCode URL slug, 'title' = problem title turned into a slug, taken by 'regex' from the file name ('name') or its parent folder ('parent').",
+  "corpora": [
+    {
+      "id": "neetcode",
+      "name": "neetcode-gh/leetcode",
+      "url": "https://github.com/neetcode-gh/leetcode",
+      "dir": "neetcode",
+      "commit": "8fed5f7",
+      "glob": "python/*.py",
+      "key": {"from": "name", "regex": "^(?P<id>\\d+)-(?P<slug>.+)\\.py$"},
+      "licence": "MIT",
+      "python": "Python 3",
+      "weight": 2,
+      "role": "counted",
+      "why": "interview-focused (NeetCode 150 and related problems); weighted double"
+    },
+    {
+      "id": "walkccc",
+      "name": "walkccc/LeetCode",
+      "url": "https://github.com/walkccc/LeetCode",
+      "dir": "walkccc",
+      "commit": "9b85aa1",
+      "glob": "solutions/*/*.py",
+      "key": {"from": "parent", "regex": "^(?P<id>\\d+)\\. (?P<title>.+)$"},
+      "licence": "MIT",
+      "python": "Python 3",
+      "weight": 1,
+      "role": "counted",
+      "why": "every LeetCode problem, modern Python 3"
+    },
+    {
+      "id": "kamyu",
+      "name": "kamyu104/LeetCode-Solutions",
+      "url": "https://github.com/kamyu104/LeetCode-Solutions",
+      "dir": "kamyu",
+      "commit": "4acdcc1",
+      "glob": "Python/*.py",
+      "key": {"from": "name", "regex": "^(?P<slug>.+)\\.py$"},
+      "licence": "MIT",
+      "python": "Python 2 style (xrange etc.); only files that parse as Python 3 are counted",
+      "weight": 1,
+      "role": "counted",
+      "why": "every LeetCode problem, one author"
+    },
+    {
+      "id": "doocs",
+      "name": "doocs/leetcode",
+      "url": "https://github.com/doocs/leetcode",
+      "dir": "doocs",
+      "commit": "09e4b10",
+      "glob": "solution/*/*/Solution.py",
+      "key": {"from": "parent", "regex": "^(?P<id>\\d+)\\.(?P<title>.+)$"},
+      "licence": "CC BY-SA 4.0",
+      "python": "Python 3",
+      "weight": 1,
+      "role": "counted",
+      "why": "every LeetCode problem, modern Python 3; counts only, credited"
+    }
+  ],
+  "interviewList": {
+    "name": "Grind 75 (tech-interview-handbook QuestionGroups.json)",
+    "url": "https://github.com/yangshun/tech-interview-handbook",
+    "dir": "tih",
+    "commit": "e1d28e8",
+    "path": "apps/website/contents/_components/QuestionGroups.json",
+    "licence": "MIT",
+    "use": "problem ids, slugs and topic/routine tags only; no problem text",
+    "tagAliases": {"two-pointer": "two-pointers"}
+  },
+  "references": [
+    {
+      "name": "qiyuangong/leetcode",
+      "url": "https://github.com/qiyuangong/leetcode",
+      "commit": "a6f3b71",
+      "licence": "MIT",
+      "role": "reference",
+      "use": "earlier cross-check only (older, partly Python 2); not counted"
+    },
+    {
+      "name": "itcharge/AlgoNote",
+      "url": "https://github.com/itcharge/AlgoNote",
+      "commit": "2aa4fd0",
+      "licence": "CC BY-NC-ND 4.0",
+      "role": "reference",
+      "use": "not cloned; listed as reference for which templates to cover; no wording copied (licence forbids derivatives); not counted"
+    },
+    {
+      "name": "Jack-Lee-Hiter/AlgorithmsByPython",
+      "url": "https://github.com/Jack-Lee-Hiter/AlgorithmsByPython",
+      "commit": "78d7ac4",
+      "licence": "none found",
+      "role": "reference",
+      "use": "earlier cross-check only; dropped from counting because it has no licence; not counted"
+    },
+    {
+      "name": "SamirPaulb/DSAlgo",
+      "url": "https://github.com/SamirPaulb/DSAlgo",
+      "commit": "12db170",
+      "licence": "custom notice (free to practise with; asks not to copy directly)",
+      "role": "reference",
+      "use": "not cloned; listed as reference; nothing copied; not counted"
+    }
+  ]
+}

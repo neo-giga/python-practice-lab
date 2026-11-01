@@ -2,15 +2,17 @@
 // (skills, drill bank, preferences, progress). Nothing random, no stored plan: the plan is
 // recomputed from these inputs, so it can never drift from the content or lose progress.
 //
-// - Skills are ordered by tier, then measured frequency (traps lead Tier 2), then id.
+// - Two strands: Python syntax (ordered by tier, then measured frequency, traps leading Tier 2,
+//   then id) and Algorithm templates (ordered by interview weight, then id).
 // - Each skill gets a 20-second reminder card and up to 4 (Tier 1) or 3 drills; a drill tagged
 //   with several skills is used once, under the first skill in plan order.
 // - Skills are packed into daily sessions that fit the minutes-per-day budget (a skill larger
-//   than the budget gets a session of its own).
+//   than the budget gets a session of its own). Syntax Tier 1 comes first on its own; after it
+//   the strands interleave, each session about half syntax and half templates.
 // - Today's session = the earliest session with an untouched drill, plus a review lane of missed
 //   drills (latest Submit failed and never passed) from earlier sessions, capped at 20% of the budget.
 import type { BankDrill } from '../content/drill-bank';
-import type { Skill } from '../content/skills';
+import { strandOf, type Skill, type SkillStrand } from '../content/skills';
 
 export const CARD_MINUTES = 0.5;
 export const DRILL_MINUTES = 2;
@@ -36,6 +38,7 @@ export function isSkillPrefs(v: unknown): v is SkillPrefs {
 
 export interface PlannedSkill {
   skillId: string;
+  strand: SkillStrand;
   drillIds: string[];
   minutes: number;
 }
@@ -72,32 +75,79 @@ export interface TodaySession {
 export const drillMinutes = (d: Pick<BankDrill, 'kind'>) => (d.kind === 'predict' ? PREDICT_MINUTES : DRILL_MINUTES);
 export const drillsPerSkill = (tier: 1 | 2 | 3) => (tier === 1 ? 4 : 3);
 
-/** Tier, then frequency descending (traps, with no frequency, lead Tier 2), then id. */
+const byId = (a: Skill, b: Skill) => (a.id < b.id ? -1 : a.id > b.id ? 1 : 0);
+
+/** Syntax skills: tier, then frequency descending (traps, with no frequency, lead Tier 2), then id. */
 export function orderSkills(skills: Skill[]): Skill[] {
-  return [...skills].sort((a, b) => a.tier - b.tier || (b.frequency ?? 1) - (a.frequency ?? 1) || (a.id < b.id ? -1 : a.id > b.id ? 1 : 0));
+  return [...skills].sort((a, b) => a.tier - b.tier || (b.frequency ?? 1) - (a.frequency ?? 1) || byId(a, b));
+}
+
+/** Algorithm templates: interview weight descending (unknown weight last), then id. */
+export function orderTemplates(skills: Skill[]): Skill[] {
+  return [...skills].sort((a, b) => (b.frequency ?? -1) - (a.frequency ?? -1) || byId(a, b));
+}
+
+/** Plan order of every skill: syntax Tier 1, then syntax and templates interleaved (as packed by buildSkillPlan). */
+export function planOrder(plan: SkillPlan): string[] {
+  return plan.sessions.flatMap((s) => s.skills.map((x) => x.skillId));
 }
 
 export function buildSkillPlan(skills: Skill[], bank: BankDrill[], prefs: SkillPrefs): SkillPlan {
   const used = new Set<string>();
   const budget = prefs.minutesPerDay;
-  const planned: PlannedSkill[] = orderSkills(skills).map((s) => {
+  const syntax = orderSkills(skills.filter((s) => strandOf(s) === 'syntax'));
+  const templates = orderTemplates(skills.filter((s) => strandOf(s) === 'algorithm'));
+  const plan1 = (s: Skill): PlannedSkill => {
     const candidates = bank
       .filter((d) => d.skills.includes(s.id) && !used.has(d.id))
       .sort((a, b) => Number(a.skills[0] !== s.id) - Number(b.skills[0] !== s.id) || Number(a.source !== 'skill') - Number(b.source !== 'skill') || (a.id < b.id ? -1 : 1));
     const picked = candidates.slice(0, drillsPerSkill(s.tier));
     for (const d of picked) used.add(d.id);
     const minutes = CARD_MINUTES + picked.reduce((t, d) => t + drillMinutes(d), 0);
-    return { skillId: s.id, drillIds: picked.map((d) => d.id), minutes };
-  });
+    return { skillId: s.id, strand: strandOf(s), drillIds: picked.map((d) => d.id), minutes };
+  };
+  // Drills are assigned in the order skills are first taught: syntax Tier 1, then the interleave.
+  const tier1 = syntax.filter((s) => s.tier === 1).map(plan1);
+  const restSyntax: Skill[] = syntax.filter((s) => s.tier !== 1);
+  const restTemplates: Skill[] = [...templates];
+
   const sessions: Session[] = [];
+  const open = () => {
+    const s: Session = { index: sessions.length, skills: [], minutes: 0 };
+    sessions.push(s);
+    return s;
+  };
+  const fits = (s: Session, ps: PlannedSkill) => s.skills.length === 0 || s.minutes + ps.minutes <= budget;
+  const add = (s: Session, ps: PlannedSkill) => {
+    s.skills.push(ps);
+    s.minutes += ps.minutes;
+  };
+  // Phase 1: syntax Tier 1 alone, packed greedily.
   let cur: Session | null = null;
-  for (const ps of planned) {
-    if (!cur || (cur.minutes + ps.minutes > budget && cur.skills.length > 0)) {
-      cur = { index: sessions.length, skills: [], minutes: 0 };
-      sessions.push(cur);
+  for (const ps of tier1) {
+    if (!cur || !fits(cur, ps)) cur = open();
+    add(cur, ps);
+  }
+  // Phase 2: each session takes skills from both strands, the strand with fewer minutes so far
+  // in this session going next; when one strand runs out the other fills the sessions.
+  let nextS: PlannedSkill | null = null;
+  let nextT: PlannedSkill | null = null;
+  const peekS = () => (nextS ??= restSyntax.length ? plan1(restSyntax.shift()!) : null);
+  const peekT = () => (nextT ??= restTemplates.length ? plan1(restTemplates.shift()!) : null);
+  while (peekS() || peekT()) {
+    const s = open();
+    let mins = { syntax: 0, algorithm: 0 };
+    for (;;) {
+      const a = peekS();
+      const b = peekT();
+      const order: (PlannedSkill | null)[] = mins.algorithm < mins.syntax ? [b, a] : [a, b];
+      const pick = order.find((ps): ps is PlannedSkill => !!ps && fits(s, ps));
+      if (!pick) break;
+      add(s, pick);
+      mins = { ...mins, [pick.strand]: mins[pick.strand] + pick.minutes };
+      if (pick === nextS) nextS = null;
+      else nextT = null;
     }
-    cur.skills.push(ps);
-    cur.minutes += ps.minutes;
   }
   return { track: prefs.track, minutesPerDay: budget, sessions };
 }

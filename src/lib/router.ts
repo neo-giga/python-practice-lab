@@ -17,6 +17,10 @@ export type Route =
   | { page: 'learn'; recipeId?: string; topic?: string; q?: string; level?: string }
   | { page: 'playground'; recipe?: string }
   | { page: 'about' }
+  | { page: 'cheatsheet'; q?: string }
+  | { page: 'session' }
+  | { page: 'skill'; skillId: string }
+  | { page: 'drill'; drillId: string }
   | { page: 'notfound'; path: string };
 
 export type Page = Route['page'];
@@ -86,8 +90,19 @@ export function parseHash(hash: string): Route {
     case 'fluency':
       return parts.length <= 2 ? { page: 'fluency', exerciseId: parts[1], status: get('status'), topic: get('topic') } : { page: 'notfound', path };
     case 'learn':
+      // Bare #/learn is now the Coding interview cheatsheet; recipe deep links and filtered views keep opening the reference.
+      if (parts.length === 1 && !query) return { page: 'cheatsheet' };
+      return parts.length <= 2 ? { page: 'learn', recipeId: parts[1], topic: get('topic'), q: get('q'), level: get('level') } : { page: 'notfound', path };
     case 'reference':
       return parts.length <= 2 ? { page: 'learn', recipeId: parts[1], topic: get('topic'), q: get('q'), level: get('level') } : { page: 'notfound', path };
+    case 'cheatsheet':
+      return parts.length === 1 ? { page: 'cheatsheet', q: get('q') } : { page: 'notfound', path };
+    case 'session':
+      return parts.length === 1 ? { page: 'session' } : { page: 'notfound', path };
+    case 'skill':
+      return parts.length === 2 ? { page: 'skill', skillId: parts[1] } : { page: 'notfound', path };
+    case 'drill':
+      return parts.length === 2 ? { page: 'drill', drillId: parts[1] } : { page: 'notfound', path };
     case 'playground':
       return parts.length === 1 ? { page: 'playground', recipe: get('recipe') } : { page: 'notfound', path };
     case 'practice': {
@@ -131,7 +146,7 @@ export function href(route: Route): string {
       add('topic', route.topic);
       break;
     case 'learn':
-      path = route.recipeId ? `learn/${encodeURIComponent(route.recipeId)}` : 'learn';
+      path = route.recipeId ? `learn/${encodeURIComponent(route.recipeId)}` : 'reference';
       add('topic', route.topic);
       add('q', route.q);
       add('level', route.level);
@@ -142,6 +157,19 @@ export function href(route: Route): string {
       break;
     case 'about':
       path = 'about';
+      break;
+    case 'cheatsheet':
+      path = 'cheatsheet';
+      add('q', route.q);
+      break;
+    case 'session':
+      path = 'session';
+      break;
+    case 'skill':
+      path = `skill/${encodeURIComponent(route.skillId)}`;
+      break;
+    case 'drill':
+      path = `drill/${encodeURIComponent(route.drillId)}`;
       break;
     case 'notfound':
       path = route.path;

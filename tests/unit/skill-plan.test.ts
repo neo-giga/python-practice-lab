@@ -75,17 +75,53 @@ describe('skill planner', () => {
     }
   });
   it('skill status follows its drills', () => {
-    const ps = { skillId: 'x', drillIds: ['p', 'q'], minutes: 4.5 };
+    const ps = { skillId: 'x', strand: 'syntax' as const, drillIds: ['p', 'q'], minutes: 4.5 };
     expect(skillStatus(ps, () => ({ solved: true, missed: false }))).toBe('done');
     expect(skillStatus(ps, (id) => ({ solved: id === 'p', missed: false }))).toBe('in-progress');
     expect(skillStatus(ps, none)).toBe('todo');
   });
-  it('works on the real catalog: every skill appears once, in tier order', () => {
+  it('works on the real catalog: every skill appears once, syntax in tier order', () => {
     const plan = buildSkillPlan(realSkills, drillBank, DEFAULT_SKILL_PREFS);
     const ids = plan.sessions.flatMap((s) => s.skills.map((x) => x.skillId));
     expect(new Set(ids).size).toBe(realSkills.length);
-    const tiers = ids.map((id) => realSkills.find((s) => s.id === id)!.tier);
+    const tiers = ids.filter((id) => !id.startsWith('algo-')).map((id) => realSkills.find((s) => s.id === id)!.tier);
     expect([...tiers].sort()).toEqual(tiers);
     for (const s of plan.sessions) for (const x of s.skills) expect(x.minutes).toBe(CARD_MINUTES + x.drillIds.reduce((t, id) => t + drillMinutes(drillBank.find((d) => d.id === id)!), 0));
+  });
+
+  describe('two strands: Python syntax and Algorithm templates', () => {
+    const tpl = (id: string, frequency: number | null): Skill => ({ ...sk(id, 2, frequency), strand: undefined });
+    const strandSkills = [...skills, tpl('algo-bfs', 0.12), tpl('algo-dfs', 0.2), tpl('algo-trie', null)];
+    const strandBank = [...bank, ...['algo-bfs', 'algo-dfs', 'algo-trie'].flatMap((a) => [1, 2, 3].map((i) => dr(`${a}-${i}`, [a])))];
+    const strandOfId = (id: string) => (id.startsWith('algo-') ? 'algorithm' : 'syntax');
+
+    it('runs syntax Tier 1 first, then templates by interview weight, interleaved with the rest of syntax', () => {
+      const plan = buildSkillPlan(strandSkills, strandBank, DEFAULT_SKILL_PREFS);
+      const ids = plan.sessions.flatMap((s) => s.skills.map((x) => x.skillId));
+      expect(ids.slice(0, 2)).toEqual(['a-t1', 'd-t1']);
+      expect(ids.filter((id) => id.startsWith('algo-'))).toEqual(['algo-dfs', 'algo-bfs', 'algo-trie']);
+      expect(ids.filter((id) => !id.startsWith('algo-'))).toEqual(['a-t1', 'd-t1', 'trap', 'b-t2', 'c-t3']);
+      // No template before Tier 1 syntax is finished.
+      const firstAlgo = ids.findIndex((id) => id.startsWith('algo-'));
+      expect(firstAlgo).toBe(3); // after Tier 1 (a-t1, d-t1) and the first Tier 2 syntax skill of the mixed session
+      for (const s of plan.sessions) for (const x of s.skills) expect(x.strand).toBe(strandOfId(x.skillId));
+    });
+    it('after Tier 1, each session mixes both strands while both have skills left', () => {
+      for (const minutesPerDay of [10, 20, 30]) {
+        const plan = buildSkillPlan(strandSkills, strandBank, { ...DEFAULT_SKILL_PREFS, minutesPerDay });
+        const t1Sessions = plan.sessions.filter((s) => s.skills.some((x) => x.skillId.endsWith('-t1')));
+        const later = plan.sessions.slice(t1Sessions.length);
+        for (const s of plan.sessions) expect(s.minutes <= minutesPerDay || s.skills.length === 1).toBe(true);
+        // Both strands appear in the first post-Tier-1 session when a session fits two skills.
+        if (minutesPerDay >= 20) expect(new Set(later[0].skills.map((x) => x.strand)).size).toBe(2);
+        // Templates are spread, not bunched at the end: the first template comes in the first post-Tier-1 session.
+        expect(later[0].skills.some((x) => x.strand === 'algorithm')).toBe(true);
+      }
+    });
+    it('is deterministic with templates in any input order', () => {
+      const a = buildSkillPlan(strandSkills, strandBank, DEFAULT_SKILL_PREFS);
+      const b = buildSkillPlan([...strandSkills].reverse(), [...strandBank].reverse(), DEFAULT_SKILL_PREFS);
+      expect(JSON.stringify(a)).toBe(JSON.stringify(b));
+    });
   });
 });

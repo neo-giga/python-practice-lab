@@ -7,5 +7,6 @@
 export { exampleDrills } from './_examples';
 
 // --- Writer B (Tier 1 skills) ---
+export { loopsRangeDrills } from './b-loops-range';
 
 // --- Writer C (Tier 2-3 skills and traps) ---

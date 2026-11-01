@@ -10,6 +10,7 @@
 // not change; later changes only add optional fields. Drills reference skills by id.
 
 import frequency from './frequency.json';
+import { skillCheats } from './skill-cheats';
 
 export type SkillTier = 1 | 2 | 3;
 
@@ -83,6 +84,8 @@ export const skills: Skill[] = [
   { id: 'nonlocal', title: 'nonlocal (and closures)', tier: 3, frequency: freq('nonlocal'), summary: 'Update an outer variable from a nested helper.', recipeIds: ['closures-nonlocal'], leetcode: [lc(543, 'diameter-of-binary-tree'), lc(124, 'binary-tree-maximum-path-sum'), lc(230, 'kth-smallest-element-in-a-bst')] },
   { id: 'any-all', title: 'any() and all()', tier: 3, frequency: freq('any-all'), summary: 'Short-circuit tests over a generator instead of flag variables.', recipeIds: ['generators', 'comprehensions'], leetcode: [lc(1832, 'check-if-the-sentence-is-pangram'), lc(1550, 'three-consecutive-odds'), lc(896, 'monotonic-array')] },
 ];
+
+for (const s of skills) s.cheat ??= skillCheats[s.id];
 
 export const SKILL_IDS: string[] = skills.map((s) => s.id);
 export const skillById = new Map(skills.map((s) => [s.id, s]));

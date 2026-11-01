@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
-import { codingProblems, legacyExercises, recipes, skillDrills } from '../../src/content/index';
+import { codingProblems, exercises, legacyExercises, recipes, skillDrills } from '../../src/content/index';
 import { validateDrill, validateDrills } from '../../src/content/drill-gate';
-import { SKILL_IDS, skills, frequencyLabel } from '../../src/content/skills';
+import { SKILL_IDS, isSkillId, skills, frequencyLabel } from '../../src/content/skills';
 
 const recipeIds = new Set(recipes.map((r) => r.id));
 const taken = new Set([...recipes.map((r) => r.id), ...legacyExercises.map((e) => e.id), ...codingProblems.map((p) => p.id)]);
@@ -23,6 +23,19 @@ describe('skill taxonomy', () => {
       expect(s.tier, s.id).toBe(f >= 0.15 ? 1 : f >= 0.05 ? 2 : 3);
     }
     expect(frequencyLabel(skills[0])).toBe('used in 70% of solutions');
+  });
+});
+
+describe('skill cheatsheet and tagging', () => {
+  it('every skill has a complete cheatsheet entry', () => {
+    for (const s of skills) {
+      expect(s.cheat, s.id).toBeDefined();
+      for (const f of ['syntax', 'useCase', 'trap'] as const) expect(s.cheat![f].trim().length, `${s.id}.${f}`).toBeGreaterThan(0);
+    }
+  });
+  it('every fluency drill and coding problem carries known skill tags', () => {
+    for (const e of exercises) expect(e.skills?.length && e.skills.every(isSkillId), e.id).toBeTruthy();
+    for (const p of codingProblems) expect(p.skills?.length && p.skills.every(isSkillId), p.id).toBeTruthy();
   });
 });
 

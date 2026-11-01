@@ -14,5 +14,6 @@ export { recursionHelpersDrills } from './b-recursion-helpers';
 export { whileLoopsDrills } from './b-while-loops';
 export { listBasicsDrills } from './b-list-basics';
 export { builtinsAggregateDrills } from './b-builtins-aggregate';
+export { enumerateZipDrills } from './b-enumerate-zip';
 
 // --- Writer C (Tier 2-3 skills and traps) ---

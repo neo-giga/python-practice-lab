@@ -12,5 +12,6 @@ export { indexingLenDrills } from './b-indexing-len';
 export { assignSwapDrills } from './b-assign-swap';
 export { recursionHelpersDrills } from './b-recursion-helpers';
 export { whileLoopsDrills } from './b-while-loops';
+export { listBasicsDrills } from './b-list-basics';
 
 // --- Writer C (Tier 2-3 skills and traps) ---

@@ -68,6 +68,8 @@ export interface PlanItem {
   lane: 'new' | 'review';
   reasons: Reason[];
   estMinutes: number;
+  /** Review/retry items: the day it becomes due (plans stored before this field: the start of its week). */
+  dueDay?: number;
 }
 
 export interface PlanWeek {
@@ -113,6 +115,8 @@ export interface ProblemHistory {
   attempted: boolean;
   /** Day the learner left the problem unsolved after >= FAILS_BEFORE_SIBLING failed submits. */
   abandonedDay?: number;
+  /** Day of the most recent Submit (pass or fail); a review/retry counts as started once this reaches its due day. */
+  lastSubmitDay?: number;
 }
 
 export interface GenerateInput {
@@ -225,17 +229,26 @@ export function generatePlan(input: GenerateInput): Plan {
   const reviewUsed = new Map<number, number>();
   const placedNew = new Set<string>();
 
-  // 1. Freeze: earlier weeks, started (attempted/solved) items and the current problem keep their week.
+  // 1. Freeze: past weeks (whole), started items and the current problem keep their week, even
+  //    beyond a shortened plan's new length. A review/retry is started only by a Submit on or after
+  //    its due day (the parent problem's earlier history does not start it).
   const frozenNew = new Set<string>();
+  const planNew = new Set<string>(); // problems the previous plan already scheduled as new work
   if (input.previous) {
     for (const w of input.previous.weeks) {
-      if (w.index >= prefs.weeks) continue;
       for (const it of w.items) {
+        if (it.lane === 'new') planNew.add(it.problemId);
         const h = history[it.problemId];
-        const started = it.kind === 'problem' ? !!h?.attempted || isSolved(h) : !!h?.attempted;
-        const keep = w.index < nowWeek || started || it.problemId === input.currentProblemId;
+        const started =
+          it.lane === 'review'
+            ? (h?.lastSubmitDay ?? -Infinity) >= reviewDueDay(it, input.previous, w.index)
+            : it.kind === 'problem'
+              ? !!h?.attempted || isSolved(h)
+              : !!h?.attempted;
+        const keep = w.index < nowWeek || started || (it.lane === 'new' && it.problemId === input.currentProblemId);
         if (!keep) continue;
         if (it.lane === 'new' && frozenNew.has(it.problemId)) continue;
+        while (weeks.length <= w.index) weeks.push({ index: weeks.length, budgetMinutes: weekBudget, items: [] });
         weeks[w.index].items.push(it);
         use(w.index, it);
         if (it.lane === 'review') reviewUsed.set(w.index, (reviewUsed.get(w.index) ?? 0) + itemCost(it));
@@ -246,8 +259,13 @@ export function generatePlan(input: GenerateInput): Plan {
       }
     }
   }
-  const firstOpenWeek = Math.min(prefs.weeks - 1, Math.max(0, nowWeek));
-  const openWeeks = weeks.filter((w) => w.index >= firstOpenWeek);
+  // New work goes only into current and future weeks inside the plan's length (never a past week).
+  const firstOpenWeek = Math.max(0, nowWeek);
+  const openWeeks = weeks.filter((w) => w.index >= firstOpenWeek && w.index < prefs.weeks);
+  // Adaptation (reviews, siblings, retries) applies only to problems inside the plan's filters,
+  // or that the plan itself scheduled (e.g. prerequisite warm-ups) — never to off-plan practice.
+  const inScope = (p: CodingProblem) => (selected.has(p.pattern) && diffs.has(p.difficulty)) || planNew.has(p.id);
+  let unscheduledAdaptation = 0;
 
   // 2. Review lane: due re-solves (unassisted pass +7 d, assisted +2 d) and retries (+3 d after abandoning).
   const reviewItems: { day: number; item: PlanItem }[] = [];
@@ -256,7 +274,7 @@ export function generatePlan(input: GenerateInput): Plan {
   for (const id of ids) {
     const p = byId.get(id);
     const h = history[id];
-    if (!p) continue;
+    if (!p || !inScope(p)) continue;
     if (prefs.reviewLane && h.solvedDay !== undefined) {
       const due = h.solvedDay + (h.assisted ? REVIEW_AFTER_DAYS.assisted : REVIEW_AFTER_DAYS.unassisted);
       const reviewed = (h.lastPassDay ?? -Infinity) >= due;
@@ -265,7 +283,7 @@ export function generatePlan(input: GenerateInput): Plan {
     if (h.solvedDay === undefined && h.failedSubmits >= FAILS_BEFORE_SIBLING && h.abandonedDay !== undefined) {
       // Easier sibling next, original re-queued 3 days later.
       const sib = catalog
-        .filter((q) => q.pattern === p.pattern && q.id !== id && DIFFICULTY_ORDER[q.difficulty] <= DIFFICULTY_ORDER[p.difficulty] && !isSolved(history[q.id]) && !(history[q.id]?.failedSubmits >= FAILS_BEFORE_SIBLING))
+        .filter((q) => q.pattern === p.pattern && q.id !== id && diffs.has(q.difficulty) && DIFFICULTY_ORDER[q.difficulty] <= DIFFICULTY_ORDER[p.difficulty] && !isSolved(history[q.id]) && !(history[q.id]?.failedSubmits >= FAILS_BEFORE_SIBLING))
         .map((q) => ({ q, k: [DIFFICULTY_ORDER[q.difficulty], q.priority, tieBreak(seed, q.id)] as const }))
         .sort((a, b) => a.k[0] - b.k[0] || a.k[1] - b.k[1] || a.k[2] - b.k[2])[0]?.q;
       if (sib && !frozenNew.has(sib.id) && !pinnedFirst.some((x) => x.problemId === sib.id)) {
@@ -280,22 +298,32 @@ export function generatePlan(input: GenerateInput): Plan {
   reviewItems.sort((a, b) => a.day - b.day || (a.item.problemId < b.item.problemId ? -1 : 1));
   for (const { day, item } of reviewItems) {
     if (frozenReview.has(`${item.problemId}|${item.reasons[0]}`)) continue;
+    item.dueDay = day;
     const cap = weekBudget * REVIEW_SHARE;
-    for (let w = Math.max(firstOpenWeek, weekOf(day, startDay, prefs.weeks)); w < prefs.weeks; w++) {
-      if ((reviewUsed.get(w) ?? 0) + itemCost(item) <= cap) {
+    // Never earlier than its due week (no clamping into earlier weeks); within the review share
+    // AND the week's total remaining budget; otherwise a later week, otherwise unscheduled.
+    let placed = false;
+    for (let w = Math.max(firstOpenWeek, Math.floor((day - startDay) / 7)); w < prefs.weeks; w++) {
+      if ((reviewUsed.get(w) ?? 0) + itemCost(item) <= cap && itemCost(item) <= free(w)) {
         weeks[w].items.push(item);
         use(w, item);
         reviewUsed.set(w, (reviewUsed.get(w) ?? 0) + itemCost(item));
+        placed = true;
         break;
       }
     }
+    if (!placed) unscheduledAdaptation++;
   }
 
-  // 3. Similar-after-fail siblings go first in the current week (may exceed its budget slightly).
+  // 3. Similar-after-fail siblings go first in the earliest open week with room for them.
   for (const it of [...pinnedFirst].reverse()) {
-    weeks[firstOpenWeek].items.unshift(it); // "next": ahead of everything else this week
-
-    use(firstOpenWeek, it);
+    const w = openWeeks.find((x) => itemCost(it) <= free(x.index));
+    if (!w) {
+      unscheduledAdaptation++;
+      continue;
+    }
+    w.items.unshift(it); // "next": ahead of everything else in that week
+    use(w.index, it);
     placedNew.add(it.problemId);
   }
 
@@ -441,7 +469,7 @@ export function generatePlan(input: GenerateInput): Plan {
     generatedDay: asOfDay,
     weeks,
     shortfall,
-    unscheduled: leftInPool + unplaced,
+    unscheduled: leftInPool + unplaced + unscheduledAdaptation,
   };
 }
 
@@ -486,11 +514,24 @@ export function nextItem(plan: Plan, asOfDay: number, done: (it: PlanItem) => bo
     for (const it of w.items) {
       if (done(it)) continue;
       if (it.lane === 'new' && retried.has(it.problemId)) continue;
-      if (it.lane === 'review' && w.index > now) continue; // reviews are not due yet
+      if (it.lane === 'review' && (it.dueDay !== undefined ? it.dueDay > asOfDay : w.index > now)) continue; // not due yet
       return { item: it, week: w.index };
     }
   }
   return null;
+}
+
+/** The day a review/retry item is due: its stored dueDay, or (older plans) the start of its week. */
+export function reviewDueDay(it: PlanItem, plan: Pick<Plan, 'startDay' | 'weeks'>, weekIndex?: number): number {
+  if (it.dueDay !== undefined) return it.dueDay;
+  const w = weekIndex ?? plan.weeks.find((x) => x.items.includes(it))?.index ?? 0;
+  return plan.startDay + w * 7;
+}
+
+/** A review/retry is done once the problem passed a Submit on or after its due day (later failures do not undo it). */
+export function isReviewDone(it: PlanItem, plan: Pick<Plan, 'startDay' | 'weeks'>, passDays: number[]): boolean {
+  const due = reviewDueDay(it, plan);
+  return passDays.some((d) => d >= due);
 }
 
 // --------------------------------------------------------------- URL mirror

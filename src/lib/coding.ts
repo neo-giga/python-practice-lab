@@ -3,7 +3,7 @@ import { codingProblems, exercises } from '../content/index';
 import { patternById } from '../content/patterns';
 import type { CodingProblem } from '../content/problem-schema';
 import { catalogVersion } from '../content/problems/index';
-import { generatePlan, describeReason, type Plan, type PlanItem, type Prefs, type Reason } from './planner';
+import { generatePlan, describeReason, isReviewDone, type Plan, type PlanItem, type Prefs, type Reason } from './planner';
 import { buildHistory, dayOf } from './practice';
 import { solveState, type ProgressState } from './progress';
 import { practice, progress } from '../state';
@@ -57,10 +57,12 @@ export function itemState(p: ProgressState, it: PlanItem, plan: Plan): ItemState
   const ep = p.exercises[it.problemId];
   if (!prob) return 'todo';
   if (it.lane === 'review') {
-    // A review is done once the problem passes again on or after the day the review was planned.
-    const passAt = ep?.lastStatus === 'passed' && ep.lastRunAt ? dayOf(ep.lastRunAt) : -1;
-    const week = plan.weeks.find((w) => w.items.includes(it))?.index ?? 0;
-    return passAt >= plan.startDay + week * 7 && passAt > (ep?.solved ? dayOf(ep.solved.at) : -1) ? 'done' : 'todo';
+    // Done once a Submit passes on or after the item's due day; a later failure does not undo it.
+    // A review (unlike a retry) needs a pass on a later day than the solve that scheduled it.
+    const passes = practice.snapshot.attempts.items.filter((a) => a.problemId === it.problemId && a.version === prob.version && a.outcome === 'pass').map((a) => dayOf(a.at));
+    const isRetry = it.reasons.some((r) => r.startsWith('retry-of:'));
+    const solvedDay = ep?.solved ? dayOf(ep.solved.at) : -Infinity;
+    return isReviewDone(it, plan, isRetry ? passes : passes.filter((d) => d > solvedDay)) ? 'done' : 'todo';
   }
   const s = solveState(ep, prob.version);
   if (s === 'solved') return 'done';

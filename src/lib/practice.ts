@@ -70,7 +70,8 @@ export function isPlan(v: unknown): v is Plan {
             (it.lane === 'new' || it.lane === 'review') &&
             Array.isArray(it.reasons) &&
             it.reasons.every((r) => typeof r === 'string') &&
-            typeof it.estMinutes === 'number',
+            typeof it.estMinutes === 'number' &&
+            (it.dueDay === undefined || typeof it.dueDay === 'number'),
         ),
     )
   );
@@ -120,6 +121,9 @@ export function buildHistory(attempts: Attempt[], progress: ProgressState, catal
     }
     h.failedSubmits = fails;
     if (abandoned !== undefined && !isSolved(h)) h.abandonedDay = abandoned;
+    const submits = mine.filter((a) => a.outcome !== 'left');
+    if (submits.length) h.lastSubmitDay = dayOf(submits[submits.length - 1].at);
+    else if (prog?.lastRunAt) h.lastSubmitDay = dayOf(prog.lastRunAt);
     if (byId.has(p.id)) out[p.id] = h;
   }
   return out;

@@ -16,3 +16,7 @@ export { dAlgoDfsDrills } from './d-algo-dfs';
 export { dAlgoBinarySearchDrills } from './d-algo-binary-search';
 export { dAlgoBacktrackingDrills } from './d-algo-backtracking';
 export { dAlgoSlidingWindowDrills } from './d-algo-sliding-window';
+export { dAlgoTwoPointersDrills } from './d-algo-two-pointers';
+export { dAlgoTreeTraversalDrills } from './d-algo-tree-traversal';
+export { dAlgoDpDrills } from './d-algo-dp';
+export { dAlgoHashmapCountingDrills } from './d-algo-hashmap-counting';

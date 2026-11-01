@@ -22,3 +22,12 @@ export { bMathProblems } from './b-math';
 
 // --- Writer C (trees, tries, heap, backtracking, graphs, topo-sort, shortest-paths,
 //     dp-1d, dp-2d) ---
+export { cShortestPathsProblems } from './c-shortest-paths';
+export { cTopoSortProblems } from './c-topo-sort';
+export { cTriesProblems } from './c-tries';
+export { cDp2dProblems } from './c-dp-2d';
+export { cDp1dProblems } from './c-dp-1d';
+export { cGraphsProblems } from './c-graphs';
+export { cTreesProblems } from './c-trees';
+export { cHeapProblems } from './c-heap';
+export { cBacktrackingProblems } from './c-backtracking';

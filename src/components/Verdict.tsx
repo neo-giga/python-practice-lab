@@ -123,7 +123,7 @@ export function Verdict({ result, stale, mode, labels }: { result: RunResult; st
           {!r.compileError && (
             <ol className="cases">
               {r.cases.map((c, i) => (
-                <CaseRow key={i} c={c} index={i} labels={labels} defaultOpen={i === firstFail || (r.cases.length <= 3 && !c.passed)} />
+                <CaseRow key={`${result.runId}:${i}`} c={c} index={i} labels={labels} defaultOpen={i === firstFail || (r.cases.length <= 3 && !c.passed)} />
               ))}
             </ol>
           )}

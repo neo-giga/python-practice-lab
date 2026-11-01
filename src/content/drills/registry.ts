@@ -9,3 +9,8 @@ export { exampleDrills } from './_examples';
 // --- Writer B (Tier 1 skills) ---
 
 // --- Writer C (Tier 2-3 skills and traps) ---
+export { bitOpsDrills } from './c-bit-ops';
+export { conditionalExprDrills } from './c-conditional-expr';
+export { slicingDrills } from './c-slicing';
+export { membershipDrills } from './c-membership';
+export { dictCounterDrills } from './c-dict-counter';

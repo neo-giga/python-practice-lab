@@ -2815,6 +2815,26 @@ details.stdin textarea {
   padding-left: 2ch;
   text-indent: -2ch;
 }
+/* Copy / Open in playground under a card's code block: small quiet buttons, full tap height on touch. */
+.cheat-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2px 4px;
+  margin: -4px 0 8px;
+}
+.cheat-actions .btn {
+  min-height: 30px;
+  padding: 0 8px;
+  font-size: var(--fs-sm);
+  color: var(--gray-900);
+}
+.cheat-actions .btn .icon {
+  width: 14px;
+  height: 14px;
+}
+.cheat-actions .is-copied {
+  color: var(--pass);
+}
 .cheat-facts {
   display: grid;
   grid-template-columns: max-content minmax(0, 1fr);
@@ -3004,6 +3024,9 @@ details.stdin textarea {
 
 /* ------------------------------------------- touch targets (keep last: wins the cascade) */
 @media (pointer: coarse) {
+  .cheat-actions .btn {
+    min-height: 44px;
+  }
   .chip,
   .segmented button,
   .back-link,

@@ -43,6 +43,7 @@ export function CheatCard({ s, linkTitle = true, headingLevel = 3 }: { s: Skill;
       {s.cheat && (
         <>
           <CodeBlock code={s.cheat.syntax} />
+          <CheatActions s={s} />
           <dl className="cheat-facts">
             <dt>Use it for</dt>
             <dd>{inline(s.cheat.useCase)}</dd>
@@ -59,6 +60,48 @@ export function CheatCard({ s, linkTitle = true, headingLevel = 3 }: { s: Skill;
       )}
     </article>
   );
+}
+
+/** Copy the snippet, or open it in the Playground, from under a cheat card's code block. */
+function CheatActions({ s }: { s: Skill }) {
+  const [copied, setCopied] = useState(false);
+  const copy = async () => {
+    if (!(await copyText(s.cheat!.syntax))) return;
+    setCopied(true);
+    setTimeout(() => setCopied(false), 1500);
+  };
+  return (
+    <div className="cheat-actions no-print">
+      <button type="button" className={`btn btn-quiet${copied ? ' is-copied' : ''}`} onClick={copy} aria-label={`Copy the ${s.title} code`} data-testid="cheat-copy">
+        <Icon name={copied ? 'check' : 'copy'} />
+        {copied ? 'Copied' : 'Copy'}
+        {copied && <span className="visually-hidden" role="status">Copied to the clipboard</span>}
+      </button>
+      <a className="btn btn-quiet" href={href({ page: 'playground', skill: s.id })} data-testid="cheat-open-playground">
+        <Icon name="play" />
+        Open in playground
+      </a>
+    </div>
+  );
+}
+
+/** Clipboard write with a fallback for browsers without the async clipboard API; true when the text was copied. */
+async function copyText(text: string): Promise<boolean> {
+  try {
+    await navigator.clipboard.writeText(text);
+    return true;
+  } catch {
+    const ta = document.createElement('textarea');
+    ta.value = text;
+    ta.setAttribute('readonly', '');
+    ta.style.position = 'fixed';
+    ta.style.opacity = '0';
+    document.body.appendChild(ta);
+    ta.select();
+    const ok = document.execCommand('copy');
+    ta.remove();
+    return ok;
+  }
 }
 
 /** "Tier 1 · Must-know" for syntax skills, "Algorithm template" for templates, "Interview essential" for the unmeasured cards. */

@@ -162,6 +162,27 @@ export const dAlgoTopoSortDrills: SkillDrill[] = [
     why: 'The edge points `before -> course`, so it is `course` that waits for one more prerequisite: increment the target\'s indegree.',
     hints: ['Which end of the edge has to wait?', 'The line after `graph[before].append(course)` should count `course`.'],
     wrong: [
+      // Asks "was anything taken?" instead of "was everything taken?": an isolated course hides a cycle.
+      py`
+        from collections import deque
+
+        def can_finish(n: int, prereqs: list[list[int]]) -> bool:
+            graph = [[] for _ in range(n)]
+            indegree = [0] * n
+            for course, before in prereqs:
+                graph[before].append(course)
+                indegree[course] += 1
+            queue = deque(i for i in range(n) if indegree[i] == 0)
+            taken = 0
+            while queue:
+                node = queue.popleft()
+                taken += 1
+                for nxt in graph[node]:
+                    indegree[nxt] -= 1
+                    if indegree[nxt] == 0:
+                        queue.append(nxt)
+            return taken > 0
+      `,
       // Counts correctly but forgets the cycle check.
       py`
         from collections import deque
@@ -189,6 +210,7 @@ export const dAlgoTopoSortDrills: SkillDrill[] = [
       { args: '3, [[1, 0], [2, 0]]', expected: 'True' },
       { args: '2, [[1, 0], [0, 1]]', expected: 'False' },
       { args: '3, [[0, 1], [1, 2], [2, 0]]', expected: 'False' },
+      { args: '3, [[1, 0], [0, 1]]', expected: 'False' },
       { args: '3, []', expected: 'True' },
     ],
     provenance: 'original',
@@ -250,6 +272,27 @@ export const dAlgoTopoSortDrills: SkillDrill[] = [
                         ready.append(u)
             return order if len(order) == len(tasks) else []
       `,
+      // Sorts the first ready batch, then releases newly ready tasks first-in first-out.
+      py`
+        from collections import deque
+
+        def build_order(tasks: dict[str, list[str]]) -> list[str]:
+            waiting = {t: len(deps) for t, deps in tasks.items()}
+            users = {t: [] for t in tasks}
+            for t, deps in tasks.items():
+                for d in deps:
+                    users[d].append(t)
+            ready = deque(sorted(t for t, w in waiting.items() if w == 0))
+            order = []
+            while ready:
+                t = ready.popleft()
+                order.append(t)
+                for u in users[t]:
+                    waiting[u] -= 1
+                    if waiting[u] == 0:
+                        ready.append(u)
+            return order if len(order) == len(tasks) else []
+      `,
       // No cycle check: returns the tasks it managed to place.
       py`
         import heapq
@@ -278,6 +321,7 @@ export const dAlgoTopoSortDrills: SkillDrill[] = [
       { args: "{'app': ['lib'], 'lib': ['core'], 'core': []}", expected: "['core', 'lib', 'app']" },
       { args: "{'test': ['build'], 'build': ['fetch'], 'lint': ['fetch'], 'fetch': []}", expected: "['fetch', 'build', 'lint', 'test']" },
       { args: "{'b': [], 'a': []}", expected: "['a', 'b']" },
+      { args: "{'b': [], 'c': [], 'a': ['b']}", expected: "['b', 'a', 'c']" },
       { args: "{'z': ['y'], 'y': [], 'w': ['z']}", expected: "['y', 'z', 'w']" },
       { args: "{'ok': [], 'x': ['y'], 'y': ['x']}", expected: '[]' },
       { args: '{}', expected: '[]' },

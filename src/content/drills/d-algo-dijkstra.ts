@@ -193,6 +193,28 @@ export const dAlgoDijkstraDrills: SkillDrill[] = [
                     dp[r][c] = best + grid[r][c]
             return dp[-1][-1]
       `,
+      // Leaves out the leftward move: a walk that must snake back to the left is missed.
+      py`
+        import heapq
+
+        def cheapest_walk(grid: list[list[int]]) -> int:
+            R, C = len(grid), len(grid[0])
+            dist = {(0, 0): grid[0][0]}
+            heap = [(grid[0][0], 0, 0)]
+            while heap:
+                d, r, c = heapq.heappop(heap)
+                if (r, c) == (R - 1, C - 1):
+                    return d
+                if d > dist[(r, c)]:
+                    continue
+                for r2, c2 in ((r + 1, c), (r - 1, c), (r, c + 1)):
+                    if 0 <= r2 < R and 0 <= c2 < C:
+                        nd = d + grid[r2][c2]
+                        if nd < dist.get((r2, c2), float('inf')):
+                            dist[(r2, c2)] = nd
+                            heapq.heappush(heap, (nd, r2, c2))
+            return -1
+      `,
       // Leaves out the starting cell's cost.
       py`
         import heapq
@@ -224,6 +246,7 @@ export const dAlgoDijkstraDrills: SkillDrill[] = [
       { args: '[[5]]', expected: '5' },
       { args: '[[0, 0], [0, 0]]', expected: '0' },
       { args: '[[2, 1, 1]]', expected: '4' },
+      { args: '[[1, 1, 1, 1, 1], [100, 100, 100, 100, 1], [1, 1, 1, 1, 1], [1, 100, 100, 100, 100], [1, 1, 1, 1, 1]]', expected: '17' },
     ],
     provenance: 'original',
   },

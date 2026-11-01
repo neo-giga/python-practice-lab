@@ -157,6 +157,15 @@ export const dAlgoHeapTopkDrills: SkillDrill[] = [
         def top_k_frequent(nums: list[int], k: int) -> list[int]:
             return [v for v, _ in Counter(nums).most_common(k)]
       `,
+      // Selects with most_common first; sorting afterwards cannot repair a tie at the k cutoff.
+      py`
+        from collections import Counter
+
+        def top_k_frequent(nums: list[int], k: int) -> list[int]:
+            count = Counter(nums)
+            top = [v for v, _ in count.most_common(k)]
+            return sorted(top, key=lambda v: (-count[v], v))
+      `,
       // nlargest with (count, value) puts the larger value first on ties.
       py`
         import heapq
@@ -174,6 +183,7 @@ export const dAlgoHeapTopkDrills: SkillDrill[] = [
       { args: '[5, 6, 5, 6], 2', expected: '[5, 6]' },
       { args: '[9, 8, 7], 3', expected: '[7, 8, 9]' },
       { args: '[4], 1', expected: '[4]' },
+      { args: '[3, 1], 1', expected: '[1]' },
       { args: '[], 0', expected: '[]' },
     ],
     provenance: 'original',

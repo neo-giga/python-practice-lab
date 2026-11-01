@@ -147,6 +147,17 @@ export const dAlgoLinkedListDrills: SkillDrill[] = [
                 head = head.next
             return False
       `,
+      // Fast/slow, but compares values instead of nodes: equal values look like a meeting.
+      py`
+        def has_cycle(head: Optional[ListNode]) -> bool:
+            slow = fast = head
+            while fast and fast.next:
+                slow = slow.next
+                fast = fast.next.next
+                if fast is not None and slow.val == fast.val:
+                    return True
+            return False
+      `,
       // Compares before moving: slow is fast at the very start.
       py`
         def has_cycle(head: Optional[ListNode]) -> bool:
@@ -165,6 +176,7 @@ export const dAlgoLinkedListDrills: SkillDrill[] = [
       { args: 'build_cycle_list([1, 2, 3, 4, 5], 3)', expected: 'True' },
       { args: 'build_cycle_list([4], 0)', expected: 'True' },
       { args: 'build_cycle_list([1, 1], -1)', expected: 'False' },
+      { args: 'build_cycle_list([1, 1, 1], -1)', expected: 'False' },
       { args: 'build_cycle_list([1, 2, 3], -1)', expected: 'False' },
       { args: 'build_cycle_list([], -1)', expected: 'False' },
     ],

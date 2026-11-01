@@ -172,11 +172,12 @@ export const algorithmSkills: Skill[] = [
     leetcode: [lc(167, 'two-sum-ii-input-array-is-sorted'), lc(125, 'valid-palindrome'), lc(26, 'remove-duplicates-from-sorted-array'), lc(283, 'move-zeroes'), lc(15, '3sum')],
     cheat: {
       syntax: [
+        'a, target, keep = [1, 2, 4, 7], 6, lambda v: v > 1',
         '# opposite ends (sorted a): pair with a given sum',
         'i, j = 0, len(a) - 1',
         'while i < j:',
         '    s = a[i] + a[j]',
-        '    if s == target: return [i, j]',
+        '    if s == target: break            # found: a[i] + a[j] == target',
         '    if s < target: i += 1',
         '    else: j -= 1',
         '',
@@ -263,10 +264,12 @@ export const algorithmSkills: Skill[] = [
     leetcode: [lc(1, 'two-sum'), lc(560, 'subarray-sum-equals-k'), lc(242, 'valid-anagram'), lc(49, 'group-anagrams'), lc(525, 'contiguous-array')],
     cheat: {
       syntax: [
+        'from collections import Counter',
+        'nums, target, k, words = [2, 7, 11, 15], 9, 9, ["a", "b", "a"]',
         'seen = {}                              # value -> index',
         'for i, x in enumerate(nums):',
         '    if target - x in seen:',
-        '        return [seen[target - x], i]',
+        '        pair = [seen[target - x], i]; break',
         '    seen[x] = i                        # insert after the check',
         '',
         'count = Counter(words)                 # count[w] is 0 when absent',

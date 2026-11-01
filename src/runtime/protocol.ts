@@ -7,7 +7,7 @@ export interface GradeSpec {
   /**
    * 'checker': the problem ships `checker` (Python source defining
    * `check(args, result)` that returns None when `result` is acceptable, or a
-   * message). It runs in a fresh namespace on a deep copy of the original args.
+   * message). It runs in a fresh namespace on a fresh copy of the original args (the case's args expression evaluated again, so learner mutations never reach it).
    */
   compare: 'exact' | 'exact_ordered' | 'unordered' | 'unordered_nested' | 'approx' | 'checker';
   /**

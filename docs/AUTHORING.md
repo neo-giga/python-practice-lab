@@ -69,7 +69,7 @@ cannot change the expectation. Comparison is Python-native and **type-strict**: 
 | `compare: 'unordered_nested'` | Outer list and each inner list may be in any order (e.g. all subsets). |
 | `compare: 'approx'` | Floats, tolerance 1e-9. |
 | `compare: 'exact_ordered'` | Like exact, but dict key order matters too. |
-| `compare: 'checker'`, `checker: py\`def check(args, result): ...\`` | **Several valid answers** (any valid path, any topological order, any index pair). `check` receives a deep copy of the original args tuple and the learner's raw result; it returns `None` to accept or a short message to reject. It runs in its own namespace. If it raises, the case is rejected (not crashed), so keep it robust to odd results (check types first). `expected` is still required: it is one valid answer, shown to the learner. |
+| `compare: 'checker'`, `checker: py\`def check(args, result): ...\`` | **Several valid answers** (any valid path, any topological order, any index pair). `check` receives a fresh, unmutated copy of the original args tuple (the args expression evaluated again in its own namespace) and the learner's raw result; it returns `None` to accept or a short message to reject. It runs in its own namespace. If it raises, the case is rejected (not crashed), so keep it robust to odd results (check types first). `expected` is still required: it is one valid answer, shown to the learner. |
 | `check: 'mutated_arg0'` | In-place problems: the function must return `None`; `args[0]` is graded after the call. |
 | `check: 'return_k_prefix'` | "Return k and keep the first k items" problems: the return must be an `int` equal to `len(expected)`, and `args[0][:k]` is compared with `compare: 'exact'` or `'unordered'`. |
 | `transform: 'linked_list'` / `'tree'` | Return a `ListNode` / `TreeNode`; it is compared as its value list (trees in level order with trailing `None`s trimmed). Write `expected` as a plain list. |
@@ -83,6 +83,9 @@ cannot change the expectation. Comparison is Python-native and **type-strict**: 
 `-1` for none), `build_shared_lists(a, b, tail)` → `(head_a, head_b)` sharing the `tail` nodes,
 `build_graph(adj)` (1-indexed adjacency list → node 1) and `graph_to_adj(node)`.
 Node-identity problems (cycle start, intersection, clone) use `compare: 'checker'`.
+
+**Long linked structures are safe.** The harness cuts `next`/`left`/`right`/… links iteratively after every case, so a
+5,000-node (or longer) list or tree in a case, an expected value or a learner's result never overflows the stack on free.
 
 **Speed is not graded.** A larger case exists to catch wrong logic at scale, not to time solutions; browsers differ too
 much for reliable timing. Keep the reference under about 3 s for all cases in Pyodide (the gate enforces it), and size

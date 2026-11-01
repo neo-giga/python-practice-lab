@@ -141,3 +141,43 @@ describe('prelude builders', () => {
     expect(r.passed).toBe(p.cases.length);
   });
 });
+
+describe('long linked structures are torn down iteratively (no stack overflow on free)', () => {
+  // CPython frees a ListNode chain recursively; in Pyodide a ~5,000-node chain
+  // used to overflow the JS/WASM stack ("Maximum call stack size exceeded").
+  const reverse = 'def reverse_list(head):\n    prev = None\n    while head:\n        head.next, prev, head = prev, head, head.next\n    return prev\n';
+  it('grades a 5,000-node linked-list case in real Pyodide', () => {
+    const spec: GradeSpec = {
+      entry: 'reverse_list',
+      kind: 'function',
+      compare: 'exact',
+      transform: 'linked_list',
+      cases: [{ args: 'build_list(list(range(5000)))', expected: 'list(range(4999, -1, -1))' }],
+    };
+    for (let round = 0; round < 3; round++) {
+      const r = grade(reverse, spec);
+      expect(r.cases[0].error).toBeNull();
+      expect(r.passed).toBe(1);
+    }
+  });
+  it('survives a learner-built 20,000-node chain and a 5,000-deep tree (wrong answers still reported)', () => {
+    const chain: GradeSpec = { entry: 'f', kind: 'function', compare: 'exact', transform: 'linked_list', cases: [{ args: '', expected: '[0]' }] };
+    const r = grade('def f():\n    head = None\n    for i in range(20000):\n        head = ListNode(i, head)\n    return head\n', chain);
+    expect(r.passed).toBe(0);
+    expect(r.cases[0].actual).toMatch(/too long|list\[/);
+    const tree: GradeSpec = { entry: 'f', kind: 'function', compare: 'exact', transform: 'tree', cases: [{ args: '', expected: '[0]' }] };
+    const t = grade('def f():\n    root = None\n    for i in range(5000):\n        root = TreeNode(i, root, None)\n    return root\n', tree);
+    expect(t.passed).toBe(0);
+    expect(t.cases[0].error === null || !/Maximum call stack/.test(t.cases[0].error)).toBe(true);
+  });
+  it('teardown never touches builtins or prelude classes (only instance links are cut)', () => {
+    expect(py.runPython('import builtins; builtins.next(iter([7]))')).toBe(7);
+    expect(py.runPython('_ns = _fresh_namespace(); eval("build_list([1, 2]).next.val", _ns)')).toBe(2);
+  });
+  it('a learner exception holding a 5,000-node chain in its frame is reported without crashing', () => {
+    const spec: GradeSpec = { entry: 'f', kind: 'function', compare: 'exact', cases: [{ args: '', expected: '1' }] };
+    const r = grade('def f():\n    head = build_list(list(range(5000)))\n    raise ValueError("boom")\n', spec);
+    expect(r.cases[0].error).toMatch(/ValueError: boom/);
+    expect(grade('def f():\n    return 1\n', spec).passed).toBe(1); // interpreter still alive
+  });
+});

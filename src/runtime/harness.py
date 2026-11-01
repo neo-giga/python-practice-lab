@@ -16,13 +16,13 @@ learner mutating an input cannot alter the expectation.
 """
 
 import builtins
-import copy
 import io
 import json
 import math
 import reprlib
 import sys
 import traceback
+import types
 from collections import Counter
 
 USER_FILE = "main.py"
@@ -357,6 +357,59 @@ def _no_input(*_args):
 # ---------------------------------------------------------------- running ---
 
 
+# ------------------------------------------------------------- teardown ---
+# CPython frees a linked chain of objects recursively (node -> node.next -> ...).
+# Under Pyodide a few thousand ListNodes overflow the JS/WASM stack on free and
+# kill the interpreter. Before references drop, walk everything a case created
+# and cut node links iteratively, so each node is freed on its own.
+
+_LINK_ATTRS = ("next", "prev", "left", "right", "random", "child", "children", "neighbors", "parent")
+_SKIP = (types.ModuleType, type, types.FunctionType, types.BuiltinFunctionType, types.MethodType, types.CodeType)
+_ATOMS = (int, float, complex, str, bytes, bool)
+
+
+def _teardown(roots, limit=2_000_000):
+    stack = [r for r in roots if r is not None]
+    seen = set()
+    while stack and len(seen) < limit:
+        obj = stack.pop()
+        if obj is None or isinstance(obj, _ATOMS) or isinstance(obj, _SKIP):
+            continue
+        oid = id(obj)
+        if oid in seen:
+            continue
+        seen.add(oid)
+        if isinstance(obj, dict):
+            stack.extend(v for k, v in obj.items() if k != "__builtins__")
+        elif isinstance(obj, (list, tuple, set, frozenset)):
+            stack.extend(obj)
+        elif isinstance(obj, _Shape):
+            stack.append(obj.values)
+        else:
+            d = getattr(obj, "__dict__", None)
+            if not isinstance(d, dict):
+                continue
+            for attr in _LINK_ATTRS:
+                v = d.get(attr)
+                if v is None or isinstance(v, _ATOMS):
+                    continue
+                stack.append(v)
+                try:
+                    d[attr] = None  # the stack still holds v, so nothing is freed recursively here
+                except Exception:  # noqa: BLE001
+                    pass
+    stack.clear()
+
+
+def _teardown_traceback(tb):
+    """Cut links held by the locals of the learner's failing frames before the traceback is freed."""
+    frames = []
+    while tb is not None:
+        frames.append(dict(tb.tb_frame.f_locals))  # 3.13+: a FrameLocalsProxy, not a dict
+        tb = tb.tb_next
+    _teardown(frames)
+
+
 def _fresh_namespace():
     ns = {"__name__": "__main__", "__builtins__": builtins}
     exec(compile(PRELUDE, "<prelude>", "exec"), ns)
@@ -377,10 +430,12 @@ def pil_run(source):
     except BaseException as exc:  # noqa: BLE001 - report everything the learner raised
         message = format_user_error(exc)
         sys.stderr.write(message)
+        _teardown_traceback(exc.__traceback__)
         return json.dumps({"ok": False, "error": message.strip().splitlines()[-1]})
     finally:
         sys.stdout.flush()
         sys.stderr.flush()
+        _teardown((ns,))
     return json.dumps({"ok": True})
 
 
@@ -482,6 +537,7 @@ def pil_grade(source, spec_json):
             continue
 
         ns = _fresh_namespace()  # fresh module scope per case: caches/globals never leak
+        args = returned = actual = original = None
         sink = BoundedText(CASE_STDOUT_LIMIT)
         old_out, old_input = sys.stdout, builtins.input
         sys.stdout = sink
@@ -501,7 +557,9 @@ def pil_grade(source, spec_json):
             else:
                 fn = _resolve_entry(ns, entry, lc_method)
                 args = _eval_value("(" + case["args"] + ",)", ns) if case["args"].strip() else ()
-                original = copy.deepcopy(args) if checker is not None else None
+                # The checker gets its own fresh copy of the original args: the same expression
+                # evaluated in a separate namespace (deepcopy recurses and overflows on long lists).
+                original = _eval_value("(" + case["args"] + ",)", _fresh_namespace()) if checker is not None and case["args"].strip() else (() if checker is not None else None)
                 returned = fn(*args)
                 if check == "mutated_arg0":
                     if returned is not None:
@@ -537,9 +595,12 @@ def pil_grade(source, spec_json):
             pass
         except BaseException as exc:  # noqa: BLE001
             row["error"] = format_user_error(exc)
+            _teardown_traceback(exc.__traceback__)
         finally:
             sys.stdout = old_out
             builtins.input = old_input
+            _teardown((args, returned, actual, original, expected, ns))
+            args = returned = actual = original = expected = ns = None
         row["stdout"] = sink.text()
         if row["passed"]:
             report["passed"] += 1

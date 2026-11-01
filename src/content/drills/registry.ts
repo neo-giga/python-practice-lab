@@ -9,3 +9,10 @@ export { exampleDrills } from './_examples';
 // --- Writer B (Tier 1 skills) ---
 
 // --- Writer C (Tier 2-3 skills and traps) ---
+
+// --- Writer D (algorithm templates) ---
+export { dAlgoBfsDrills } from './d-algo-bfs';
+export { dAlgoDfsDrills } from './d-algo-dfs';
+export { dAlgoBinarySearchDrills } from './d-algo-binary-search';
+export { dAlgoBacktrackingDrills } from './d-algo-backtracking';
+export { dAlgoSlidingWindowDrills } from './d-algo-sliding-window';

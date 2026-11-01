@@ -2999,3 +2999,42 @@ details.stdin textarea {
     align-items: center;
   }
 }
+
+/* Cheatsheet alone uses the full workspace. Columns pack cards at their natural
+   height rather than stretching short reminders to the tallest code sample. */
+.cheatsheet.page {
+  max-width: none;
+  width: 100%;
+  min-width: 0;
+}
+.cheatsheet .cheat-grid {
+  display: block;
+  columns: 320px;
+  column-gap: 16px;
+}
+.cheatsheet .cheat-card {
+  display: flow-root;
+  break-inside: avoid;
+  margin: 0 0 16px;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.cheatsheet .cheat-card h3 { margin-top: 0; }
+.cheatsheet .snippet-block,
+.cheatsheet .codeblock { min-width: 0; max-width: 100%; }
+.cheatsheet .codeblock pre { overflow-x: auto; white-space: pre; }
+.cheatsheet .snippet-actions { display: flex; flex-wrap: wrap; gap: 4px; }
+.cheatsheet .snippet-block [role="status"]:empty { display: none; }
+.cheatsheet .manual-copy textarea { display: block; width: 100%; max-width: 100%; }
+@media print {
+  .cheatsheet .cheat-grid { columns: 2; }
+}
+@media (max-width: 359px) {
+  .shell:has(.cheatsheet) .topbar .brand {
+    font-size: 13px;
+    gap: 4px;
+  }
+}
+@media (min-width: 768px) and (max-width: 1023px) {
+  .cheatsheet .cheat-grid { columns: 2; }
+}

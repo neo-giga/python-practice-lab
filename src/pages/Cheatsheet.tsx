@@ -4,6 +4,9 @@ import { STRAND_LABEL, TIER_LABEL, skills, strandOf } from '../content/skills';
 import { Icon } from '../components/Icon';
 import { orderSkills, orderTemplates } from '../lib/skill-plan';
 import { href, navigate, type Route } from '../lib/router';
+import { curatedReference } from '../content/curated-reference';
+import sourceDocument from '../../docs/NEO_PYTHON_CHEATSHEET.md?url';
+import { SnippetBlock } from '../components/SnippetBlock';
 import { CheatCard } from './SkillPages';
 
 const syntaxSkills = orderSkills(skills.filter((s) => strandOf(s) === 'syntax'));
@@ -27,6 +30,8 @@ export function CheatsheetPage({ route }: { route: Extract<Route, { page: 'cheat
 
   const words = q.toLowerCase().split(/\s+/).filter(Boolean);
   const visible = ordered.filter((s) => words.every((w) => haystack(s).includes(w)));
+  const references = curatedReference.filter((r) => words.every((w) => `${r.title} ${r.note} ${r.code}`.toLowerCase().includes(w)));
+
   return (
     <div className="page cheatsheet" data-testid="cheatsheet">
       <header className="page-head">
@@ -52,9 +57,10 @@ export function CheatsheetPage({ route }: { route: Extract<Route, { page: 'cheat
         </label>
         <span className="muted small" role="status" data-testid="cheat-count">
           {visible.length === ordered.length ? `${ordered.length} skills` : `${visible.length} of ${ordered.length} skills`}
+          {' · '}{references.length} reference sections
         </span>
       </div>
-      {visible.length === 0 && (
+      {visible.length === 0 && references.length === 0 && (
         <p className="empty-state" data-testid="cheat-empty">
           Nothing matches “{q}”. Try a shorter word, such as “dict” or “sort”.
         </p>
@@ -87,6 +93,17 @@ export function CheatsheetPage({ route }: { route: Extract<Route, { page: 'cheat
           </div>
         </section>
       )}
+      {references.length > 0 && <section className="cheat-tier" aria-labelledby="curated-title" data-testid="curated-reference">
+        <h2 id="curated-title">Curated Python reference</h2>
+        <p>Runnable adaptations of all 17 supplied sections. Each demo includes its own inputs and prints its results. <a href={sourceDocument} download="NEO_PYTHON_CHEATSHEET.md">Download the original source</a>.</p>
+        <div className="cheat-grid">
+          {references.map((r) => <article className="cheat-card" key={r.id} data-reference={r.id}>
+            <h3>{r.title}</h3>
+            <p className="cheat-summary">{r.note}</p>
+            <SnippetBlock code={r.code} snippet={`reference:${r.id}`} />
+          </article>)}
+        </div>
+      </section>}
       <p className="muted small cheat-sources" data-testid="cheat-sources">
         Frequencies measured by counting Python constructs (no text copied) in open-licensed LeetCode solution repositories, weighted toward the Grind 75
         interview list. <a href={href({ page: 'about' })}>Sources and licences</a>.

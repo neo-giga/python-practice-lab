@@ -8,7 +8,7 @@ import { drillById, drillsForSkill } from '../content/drill-bank';
 import { DIFFICULTY_ORDER } from '../content/problem-schema';
 import { STRAND_LABEL, TIER_LABEL, frequencyLabel, leetcodeUrl, skillById, skills, strandOf, type Skill } from '../content/skills';
 import { recipes } from '../content/index';
-import { CodeBlock } from '../components/CodeBlock';
+import { SnippetBlock } from '../components/SnippetBlock';
 import { Icon } from '../components/Icon';
 import { inline } from '../components/RichText';
 import { DifficultyTag, Segmented, StatusMark, Ticks, type Mark, type TickState } from '../components/ui';
@@ -42,7 +42,7 @@ export function CheatCard({ s, linkTitle = true, headingLevel = 3 }: { s: Skill;
       <p className="cheat-summary">{inline(s.summary)}</p>
       {s.cheat && (
         <>
-          <CodeBlock code={s.cheat.syntax} />
+          <SnippetBlock code={s.cheat.syntax} snippet={`skill:${s.id}`} />
           <dl className="cheat-facts">
             <dt>Use it for</dt>
             <dd>{inline(s.cheat.useCase)}</dd>

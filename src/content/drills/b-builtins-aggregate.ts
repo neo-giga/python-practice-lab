@@ -45,7 +45,7 @@ export const builtinsAggregateDrills: SkillDrill[] = [
   },
   {
     id: 'best-rise-running-min',
-    version: 1,
+    version: 2,
     title: 'Fix: the biggest rise from a running minimum',
     skills: ['builtins-aggregate', 'infinity'],
     kind: 'fix',
@@ -84,6 +84,15 @@ export const builtinsAggregateDrills: SkillDrill[] = [
                 best = max(best, x - low)
             return best
       `,
+      // Guesses a finite "large" start: readings above 10**9 rise from the made-up value.
+      py`
+        def best_rise(readings: list[int]) -> int:
+            best, low = 0, 10**9
+            for x in readings:
+                low = min(low, x)
+                best = max(best, x - low)
+            return best
+      `,
     ],
     grading: { entry: 'best_rise', kind: 'function', compare: 'exact' },
     cases: [
@@ -93,6 +102,7 @@ export const builtinsAggregateDrills: SkillDrill[] = [
       { args: '[9, 4, 6, 1, 3]', expected: '2' },
       { args: '[3, 2, 1]', expected: '0' },
       { args: '[1, 2, 10, 0, 4]', expected: '9' },
+      { args: '[10**9 + 5, 10**9 + 7]', expected: '2' },
     ],
     provenance: 'original',
   },

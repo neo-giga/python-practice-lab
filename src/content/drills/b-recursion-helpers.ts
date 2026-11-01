@@ -44,7 +44,7 @@ export const recursionHelpersDrills: SkillDrill[] = [
   },
   {
     id: 'choose-k-path-copy',
-    version: 1,
+    version: 2,
     title: 'Fix: every combination comes back empty',
     skills: ['recursion-helpers', 'list-basics'],
     kind: 'fix',
@@ -96,6 +96,23 @@ export const recursionHelpersDrills: SkillDrill[] = [
             go(0)
             return out
       `,
+      // Returns early on empty input: misses the one empty combination when k == 0.
+      py`
+        def choose(nums: list[int], k: int) -> list[list[int]]:
+            if not nums:
+                return []
+            out, path = [], []
+            def go(start):
+                if len(path) == k:
+                    out.append(path[:])
+                    return
+                for j in range(start, len(nums)):
+                    path.append(nums[j])
+                    go(j + 1)
+                    path.pop()
+            go(0)
+            return out
+      `,
     ],
     grading: { entry: 'choose', kind: 'function', compare: 'exact' },
     cases: [
@@ -104,6 +121,8 @@ export const recursionHelpersDrills: SkillDrill[] = [
       { args: '[1], 2', expected: '[]' },
       { args: '[4, 5, 6], 3', expected: '[[4, 5, 6]]' },
       { args: '[1, 2, 3, 4], 1', expected: '[[1], [2], [3], [4]]' },
+      { args: '[], 0', expected: '[[]]' },
+      { args: '[], 1', expected: '[]' },
     ],
     provenance: 'original',
   },
@@ -127,7 +146,7 @@ export const recursionHelpersDrills: SkillDrill[] = [
               return 1
           return strip_ways(n - 1) + strip_ways(n - 2)
     `,
-    why: 'Every recursive call must land on a base case: `n - 2` can jump from 1 past to 0 and below, so the base case must cover `n <= 1`.',
+    why: 'Every recursive call must land on a base case: `strip_ways(2)` calls `strip_ways(0)`, which has none and recurses to -1, -2, …, so the base case must cover `n <= 1`.',
     hints: ['Trace `strip_ways(2)`: which calls does it make?', 'Both 0 and 1 have exactly one tiling.'],
     wrong: [
       // Stops, but says the empty strip has no tiling.

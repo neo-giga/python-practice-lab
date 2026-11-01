@@ -39,7 +39,7 @@ export const slicingDrills: SkillDrill[] = [
   },
   {
     id: "slice-reverse-all",
-    version: 1,
+    version: 2,
     title: "Reverse with a slice",
     skills: ["slicing"],
     kind: "idiom",
@@ -61,13 +61,20 @@ export const slicingDrills: SkillDrill[] = [
       def reverse_slice(nums: list[int]) -> list[int]:
           return nums[:0:-1]
     `,
+      // Reverses the argument in place instead of returning a copy.
+      py`
+      def reverse_slice(nums: list[int]) -> list[int]:
+          nums.reverse()
+          return nums
+    `,
     ],
-    grading: {"entry":"reverse_slice","kind":"function","compare":"exact"},
+    grading: {"entry":"reverse_slice","kind":"calls","compare":"exact"},
     cases: [
-      { args: "[4, 9, 2]", expected: "[2, 9, 4]" },
-      { args: "[]", expected: "[]" },
-      { args: "[5]", expected: "[5]" },
-      { args: "[0, -1]", expected: "[-1, 0]" },
+      { args: "[([4, 9, 2],)]", expected: "[[2, 9, 4]]" },
+      { args: "[([],)]", expected: "[[]]" },
+      { args: "[([5],)]", expected: "[[5]]" },
+      { args: "[([0, -1],)]", expected: "[[-1, 0]]" },
+      { args: "[((nums := [4, 9, 2]),), (nums,)]", expected: "[[2, 9, 4], [2, 9, 4]]" },
     ],
     provenance: 'original',
   },

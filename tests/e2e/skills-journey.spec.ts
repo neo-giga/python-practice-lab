@@ -1,17 +1,8 @@
 // The skills-track preview journey on the production build with the real Pyodide runtime:
 // setup → plan → Today → session (reminder card → drill: wrong, then right) → reload keeps
 // progress → cheatsheet search → skill page → algorithm templates (cheatsheet section, template page, drill to a pass).
-import { execSync } from 'node:child_process';
-import { readFileSync } from 'node:fs';
 import { expect, test } from '@playwright/test';
-import { expectNoHorizontalOverflow, setEditor, shot, watchErrors } from './helpers';
-
-// Drill solutions come from the exported curriculum (skill drills in `problems`, fluency drills in `exercises`).
-function drillById(id: string): { starter: string; solution: string } | undefined {
-  execSync('npx vite-node scripts/export-content.ts', { stdio: 'ignore' });
-  const c = JSON.parse(readFileSync('build/content.json', 'utf8')) as Record<'problems' | 'exercises', { id: string; starter: string; solution: string }[]>;
-  return [...c.problems, ...c.exercises].find((d) => d.id === id);
-}
+import { drillById, expectNoHorizontalOverflow, setEditor, shot, watchErrors } from './helpers';
 
 test.describe('Skills journey @device', () => {
   test('setup → session (wrong, then right) → reload keeps progress → cheatsheet search → skill page', async ({ page }, info) => {

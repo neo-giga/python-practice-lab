@@ -471,6 +471,22 @@ export function generatePlan(input: GenerateInput): Plan {
   // Items within a week: review lane after new work, stable.
   for (const w of weeks) w.items.sort((a, b) => (a.lane === b.lane ? 0 : a.lane === 'new' ? -1 : 1));
 
+  // Existing retry obligations survive a preference change: carry the previous plan's pending and
+  // placed retries forward with their original dueDay (independent of eligibility for NEW
+  // adaptations); retire one on completion (a pass, or its own record's doneDay) or once it is due.
+  if (input.previous) {
+    const prev = input.previous;
+    const obligations = [
+      ...(prev.pendingRetries ?? []),
+      ...prev.weeks.flatMap((w) => w.items.filter((i) => i.reasons.some((r) => r.startsWith('retry-of:'))).map((i) => ({ problemId: i.problemId, dueDay: reviewDueDay(i, prev, w.index) }))),
+    ];
+    for (const r of obligations) {
+      const done = isSolved(history[r.problemId]) || instances[`retry:${r.problemId}:${r.dueDay}`]?.doneDay !== undefined;
+      if (done || r.dueDay <= asOfDay || pendingRetries.some((x) => x.problemId === r.problemId)) continue;
+      pendingRetries.push(r);
+    }
+  }
+
   const freeMinutes = Math.round(openWeeks.reduce((t, w) => t + Math.max(0, free(w.index)), 0));
   const poolSize = pool.length;
   const exhausted = leftInPool === 0;

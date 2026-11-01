@@ -93,7 +93,7 @@ export function stageImport(text: string): StagedImport {
     if (data.plan !== null && data.plan !== undefined && !isPlan(data.plan)) throw new Error('the plan is malformed');
     if (data.attempts !== undefined && !isAttemptLog(data.attempts)) throw new Error('the attempt history is malformed');
     if (data.reviews !== undefined && !isReviewLog(data.reviews)) throw new Error('the review history is malformed');
-    if (data.reviews !== undefined) staged.reviews = data.reviews as ReviewLog;
+    staged.reviews = (data.reviews as ReviewLog | undefined) ?? { schema: 1, items: {} }; // omitted: replace with an empty log
     staged.playground = (data.playground as PlaygroundSaved | null | undefined) ?? null;
     staged.prefs = (data.prefs as Prefs | null | undefined) ?? null;
     staged.plan = (data.plan as Plan | null | undefined) ?? null;

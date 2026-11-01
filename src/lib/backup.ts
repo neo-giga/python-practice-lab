@@ -5,7 +5,7 @@
 // know). Schema 1 backups from the earlier site still import.
 // Import is validate-then-stage: nothing is written unless the whole file is valid.
 import { isDraft, isProgressState, type Draft, type ProgressState } from './progress';
-import { isAttemptLog, isPlan, type AttemptLog } from './practice';
+import { isAttemptLog, isPlan, isReviewLog, type AttemptLog, type ReviewLog } from './practice';
 import { validatePrefs, type Plan, type Prefs } from './planner';
 import type { SafeStore } from './storage';
 
@@ -29,6 +29,8 @@ export interface BackupV2 {
   prefs: Prefs | null;
   plan: Plan | null;
   attempts: AttemptLog;
+  /** Review/retry instance activity (added after schema 2 shipped; optional on import). */
+  reviews?: ReviewLog;
 }
 
 export interface StagedImport {
@@ -40,6 +42,7 @@ export interface StagedImport {
   prefs?: Prefs | null;
   plan?: Plan | null;
   attempts?: AttemptLog;
+  reviews?: ReviewLog;
 }
 
 const DRAFT = 'draft:';
@@ -61,6 +64,7 @@ export function buildBackup(store: SafeStore, progress: ProgressState, now: numb
     prefs: store.read('prefs', validatePrefs),
     plan: store.read('plan', isPlan),
     attempts: store.read('attempts', isAttemptLog) ?? { schema: 1, items: [] },
+    reviews: store.read('reviews', isReviewLog) ?? { schema: 1, items: {} },
   };
 }
 
@@ -88,6 +92,8 @@ export function stageImport(text: string): StagedImport {
     if (data.prefs !== null && data.prefs !== undefined && !validatePrefs(data.prefs)) throw new Error('the plan preferences are malformed');
     if (data.plan !== null && data.plan !== undefined && !isPlan(data.plan)) throw new Error('the plan is malformed');
     if (data.attempts !== undefined && !isAttemptLog(data.attempts)) throw new Error('the attempt history is malformed');
+    if (data.reviews !== undefined && !isReviewLog(data.reviews)) throw new Error('the review history is malformed');
+    if (data.reviews !== undefined) staged.reviews = data.reviews as ReviewLog;
     staged.playground = (data.playground as PlaygroundSaved | null | undefined) ?? null;
     staged.prefs = (data.prefs as Prefs | null | undefined) ?? null;
     staged.plan = (data.plan as Plan | null | undefined) ?? null;
@@ -115,4 +121,5 @@ export function applyImport(store: SafeStore, staged: StagedImport) {
     else store.remove('plan');
   }
   if (staged.attempts !== undefined) store.write('attempts', staged.attempts);
+  if (staged.reviews !== undefined) store.write('reviews', staged.reviews);
 }

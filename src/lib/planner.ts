@@ -99,6 +99,16 @@ export interface Plan {
   shortfall: Shortfall | null;
   /** Eligible problems that did not fit the time budget (not a shortfall: the budget is the limit). */
   unscheduled: number;
+  /** Retries created by the last generation, placed or not: the failed original waits until dueDay. */
+  pendingRetries?: { problemId: string; dueDay: number }[];
+}
+
+/** A review/retry instance's own activity (stored under pil:v1:reviews, keyed by instanceKey). */
+export interface InstanceActivity {
+  /** First day the learner opened, edited, ran or submitted the problem while this instance was due. */
+  startedDay?: number;
+  /** Day a Submit passed while this instance was due (durable: survives attempt-log eviction). */
+  doneDay?: number;
 }
 
 /** What the generator needs to know about past work, keyed by problem id. */
@@ -115,8 +125,6 @@ export interface ProblemHistory {
   attempted: boolean;
   /** Day the learner left the problem unsolved after >= FAILS_BEFORE_SIBLING failed submits. */
   abandonedDay?: number;
-  /** Day of the most recent Submit (pass or fail); a review/retry counts as started once this reaches its due day. */
-  lastSubmitDay?: number;
 }
 
 export interface GenerateInput {
@@ -133,6 +141,8 @@ export interface GenerateInput {
   previous?: Plan | null;
   /** The problem the learner is on right now (frozen in place). */
   currentProblemId?: string | null;
+  /** Review/retry instances' own activity records, keyed by instanceKey(). */
+  instances?: Record<string, InstanceActivity>;
 }
 
 // ------------------------------------------------------------------ helpers
@@ -230,18 +240,19 @@ export function generatePlan(input: GenerateInput): Plan {
   const placedNew = new Set<string>();
 
   // 1. Freeze: past weeks (whole), started items and the current problem keep their week, even
-  //    beyond a shortened plan's new length. A review/retry is started only by a Submit on or after
-  //    its due day (the parent problem's earlier history does not start it).
+  //    beyond a shortened plan's new length. A review/retry instance is started ONLY by its own
+  //    activity record (instances[instanceKey]); the parent solve or the failing submits that created
+  //    it never count. Legacy items without dueDay get it backfilled (start of their week) here.
+  const instances = input.instances ?? {};
   const frozenNew = new Set<string>();
-  const planNew = new Set<string>(); // problems the previous plan already scheduled as new work
   if (input.previous) {
     for (const w of input.previous.weeks) {
-      for (const it of w.items) {
-        if (it.lane === 'new') planNew.add(it.problemId);
+      for (const raw of w.items) {
+        const it = raw.lane === 'review' && raw.dueDay === undefined ? { ...raw, dueDay: reviewDueDay(raw, input.previous, w.index) } : raw;
         const h = history[it.problemId];
         const started =
           it.lane === 'review'
-            ? (h?.lastSubmitDay ?? -Infinity) >= reviewDueDay(it, input.previous, w.index)
+            ? instances[instanceKey(it, input.previous, w.index)]?.startedDay !== undefined
             : it.kind === 'problem'
               ? !!h?.attempted || isSolved(h)
               : !!h?.attempted;
@@ -262,10 +273,15 @@ export function generatePlan(input: GenerateInput): Plan {
   // New work goes only into current and future weeks inside the plan's length (never a past week).
   const firstOpenWeek = Math.max(0, nowWeek);
   const openWeeks = weeks.filter((w) => w.index >= firstOpenWeek && w.index < prefs.weeks);
-  // Adaptation (reviews, siblings, retries) applies only to problems inside the plan's filters,
-  // or that the plan itself scheduled (e.g. prerequisite warm-ups) — never to off-plan practice.
-  const inScope = (p: CodingProblem) => (selected.has(p.pattern) && diffs.has(p.difficulty)) || planNew.has(p.id);
+  // NEW adaptations (reviews, siblings, retries) must pass the CURRENT preferences: a selected
+  // pattern at a selected difficulty, or, for level "New", an Easy problem of a direct prerequisite
+  // of a selected pattern (today's warm-up rule). Items already in the plan stay as history.
+  const warmupPatterns = new Set<PatternId>(
+    prefs.level === 'new' && prefs.patterns !== 'all' ? [...selected].flatMap((pid) => patternById.get(pid)?.prereqs ?? []).filter((pre) => !selected.has(pre)) : [],
+  );
+  const inScope = (p: CodingProblem) => (selected.has(p.pattern) && diffs.has(p.difficulty)) || (warmupPatterns.has(p.pattern) && p.difficulty === 'easy');
   let unscheduledAdaptation = 0;
+  const pendingRetries: { problemId: string; dueDay: number }[] = [];
 
   // 2. Review lane: due re-solves (unassisted pass +7 d, assisted +2 d) and retries (+3 d after abandoning).
   const reviewItems: { day: number; item: PlanItem }[] = [];
@@ -277,19 +293,21 @@ export function generatePlan(input: GenerateInput): Plan {
     if (!p || !inScope(p)) continue;
     if (prefs.reviewLane && h.solvedDay !== undefined) {
       const due = h.solvedDay + (h.assisted ? REVIEW_AFTER_DAYS.assisted : REVIEW_AFTER_DAYS.unassisted);
-      const reviewed = (h.lastPassDay ?? -Infinity) >= due;
+      const reviewed = (h.lastPassDay ?? -Infinity) >= due || instances[`review:${id}:${due}`]?.doneDay !== undefined;
       if (!reviewed) reviewItems.push({ day: due, item: { problemId: id, version: p.version, kind: 'problem', lane: 'review', reasons: ['review-due'], estMinutes: p.estMinutes } });
     }
     if (h.solvedDay === undefined && h.failedSubmits >= FAILS_BEFORE_SIBLING && h.abandonedDay !== undefined) {
       // Easier sibling next, original re-queued 3 days later.
       const sib = catalog
-        .filter((q) => q.pattern === p.pattern && q.id !== id && diffs.has(q.difficulty) && DIFFICULTY_ORDER[q.difficulty] <= DIFFICULTY_ORDER[p.difficulty] && !isSolved(history[q.id]) && !(history[q.id]?.failedSubmits >= FAILS_BEFORE_SIBLING))
+        .filter((q) => q.pattern === p.pattern && q.id !== id && inScope(q) && DIFFICULTY_ORDER[q.difficulty] <= DIFFICULTY_ORDER[p.difficulty] && !isSolved(history[q.id]) && !(history[q.id]?.failedSubmits >= FAILS_BEFORE_SIBLING))
         .map((q) => ({ q, k: [DIFFICULTY_ORDER[q.difficulty], q.priority, tieBreak(seed, q.id)] as const }))
         .sort((a, b) => a.k[0] - b.k[0] || a.k[1] - b.k[1] || a.k[2] - b.k[2])[0]?.q;
       if (sib && !frozenNew.has(sib.id) && !pinnedFirst.some((x) => x.problemId === sib.id)) {
         pinnedFirst.push({ problemId: sib.id, version: sib.version, kind: 'problem', lane: 'new', reasons: [`similar-after-fail:${id}`], estMinutes: sib.estMinutes });
       }
-      // The retry is part of adaptation, so it is scheduled even with the review lane off.
+      // The retry is part of adaptation, so it is scheduled even with the review lane off. Whether or
+      // not it fits the plan, the original waits until the retry's due day (pendingRetries).
+      pendingRetries.push({ problemId: id, dueDay: h.abandonedDay + RETRY_AFTER_DAYS });
       reviewItems.push({ day: h.abandonedDay + RETRY_AFTER_DAYS, item: { problemId: id, version: p.version, kind: 'problem', lane: 'review', reasons: [`retry-of:${id}`], estMinutes: p.estMinutes } });
     }
   }
@@ -470,6 +488,7 @@ export function generatePlan(input: GenerateInput): Plan {
     weeks,
     shortfall,
     unscheduled: leftInPool + unplaced + unscheduledAdaptation,
+    pendingRetries,
   };
 }
 
@@ -513,7 +532,7 @@ export function nextItem(plan: Plan, asOfDay: number, done: (it: PlanItem) => bo
   for (const w of plan.weeks) {
     for (const it of w.items) {
       if (done(it)) continue;
-      if (it.lane === 'new' && retried.has(it.problemId)) continue;
+      if (it.lane === 'new' && (retried.has(it.problemId) || plan.pendingRetries?.some((r) => r.problemId === it.problemId && r.dueDay > asOfDay))) continue;
       if (it.lane === 'review' && (it.dueDay !== undefined ? it.dueDay > asOfDay : w.index > now)) continue; // not due yet
       return { item: it, week: w.index };
     }
@@ -526,6 +545,17 @@ export function reviewDueDay(it: PlanItem, plan: Pick<Plan, 'startDay' | 'weeks'
   if (it.dueDay !== undefined) return it.dueDay;
   const w = weekIndex ?? plan.weeks.find((x) => x.items.includes(it))?.index ?? 0;
   return plan.startDay + w * 7;
+}
+
+/** Stable id of one review/retry instance: kind, problem and due day (after dueDay backfill for legacy items). */
+export function instanceKey(it: PlanItem, plan: Pick<Plan, 'startDay' | 'weeks'>, weekIndex?: number): string {
+  const kind = it.reasons.some((r) => r.startsWith('retry-of:')) ? 'retry' : 'review';
+  return `${kind}:${it.problemId}:${reviewDueDay(it, plan, weekIndex)}`;
+}
+
+/** Done from the instance's own durable record; otherwise (data from before the record existed) a logged pass on/after its due day. */
+export function isInstanceDone(it: PlanItem, plan: Pick<Plan, 'startDay' | 'weeks'>, instances: Record<string, InstanceActivity>, passDays: number[]): boolean {
+  return instances[instanceKey(it, plan)]?.doneDay !== undefined || isReviewDone(it, plan, passDays);
 }
 
 /** A review/retry is done once the problem passed a Submit on or after its due day (later failures do not undo it). */

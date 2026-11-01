@@ -16,7 +16,7 @@ import { RuntimeStatus } from '../components/RuntimeStatus';
 import { useRunFocus } from '../components/useRunFocus';
 import { DifficultyTag } from '../components/ui';
 import { Verdict, verdictOf } from '../components/Verdict';
-import { adaptPlan, isFinished, itemHref, itemState, patternTitle, problemById, whyLine, titleOf, todayDay } from '../lib/coding';
+import { adaptPlan, markReviewActivity, isFinished, itemHref, itemState, patternTitle, problemById, whyLine, titleOf, todayDay } from '../lib/coding';
 import { describeComparison } from '../lib/curriculum';
 import { sourceHash } from '../lib/hash';
 import { nextItem } from '../lib/planner';
@@ -155,6 +155,7 @@ function Workspace({ problem: e }: { problem: CodingProblem }) {
 
   useEffect(() => {
     alive.current = true;
+    markReviewActivity(e.id, 'started'); // opening a due review/retry starts that instance
     const onHide = () => flushSave();
     window.addEventListener('pagehide', onHide);
     return () => {
@@ -171,6 +172,7 @@ function Workspace({ problem: e }: { problem: CodingProblem }) {
   }, [flushSave, e]);
 
   const onChange = (v: string) => {
+    markReviewActivity(e.id, 'started');
     sourceRef.current = v;
     setSource(v);
     if (saveTimer.current) clearTimeout(saveTimer.current);
@@ -180,6 +182,7 @@ function Workspace({ problem: e }: { problem: CodingProblem }) {
   const run = async (mode: 'examples' | 'submit') => {
     if (runner.busy) return;
     markRunFocus();
+    markReviewActivity(e.id, 'started');
     const src = sourceRef.current;
     const hash = sourceHash(src);
     flushSave();
@@ -204,6 +207,7 @@ function Workspace({ problem: e }: { problem: CodingProblem }) {
     practice.addAttempt({ problemId: e.id, version: e.version, sourceHash: hash, outcome: passed ? 'pass' : 'fail', assisted: before.solutionViewed || before.hintsShown > 0, at: Date.now() });
     if (passed) {
       failsThisVisit.current = 0;
+      markReviewActivity(e.id, 'done'); // durable completion of any due review/retry of this problem
       adaptPlan(e.id);
     } else failsThisVisit.current++;
   };

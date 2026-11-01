@@ -5,7 +5,7 @@
 // Solves and drafts of coding problems keep using the legacy progress/draft
 // records keyed by problem id, so the 39 upgraded drills carry their history over.
 import type { CodingProblem } from '../content/problem-schema';
-import { isSolved, validatePrefs, type Plan, type Prefs, type ProblemHistory } from './planner';
+import { isSolved, validatePrefs, type InstanceActivity, type Plan, type Prefs, type ProblemHistory } from './planner';
 import { solveState, type ProgressState } from './progress';
 import type { SafeStore } from './storage';
 
@@ -55,6 +55,7 @@ export function isPlan(v: unknown): v is Plan {
     typeof v.startDay === 'number' &&
     typeof v.generatedDay === 'number' &&
     typeof v.unscheduled === 'number' &&
+    (v.pendingRetries === undefined || (Array.isArray(v.pendingRetries) && v.pendingRetries.every((r) => isObj(r) && typeof r.problemId === 'string' && typeof r.dueDay === 'number'))) &&
     v.weeks.every(
       (w) =>
         isObj(w) &&
@@ -121,17 +122,29 @@ export function buildHistory(attempts: Attempt[], progress: ProgressState, catal
     }
     h.failedSubmits = fails;
     if (abandoned !== undefined && !isSolved(h)) h.abandonedDay = abandoned;
-    const submits = mine.filter((a) => a.outcome !== 'left');
-    if (submits.length) h.lastSubmitDay = dayOf(submits[submits.length - 1].at);
-    else if (prog?.lastRunAt) h.lastSubmitDay = dayOf(prog.lastRunAt);
     if (byId.has(p.id)) out[p.id] = h;
   }
   return out;
 }
 
+/** pil:v1:reviews: each review/retry instance's own activity, keyed by planner.instanceKey(). */
+export interface ReviewLog {
+  schema: 1;
+  items: Record<string, InstanceActivity>;
+}
+
+export function isReviewLog(v: unknown): v is ReviewLog {
+  return (
+    isObj(v) &&
+    v.schema === 1 &&
+    isObj(v.items) &&
+    Object.values(v.items).every((a) => isObj(a) && (a.startedDay === undefined || typeof a.startedDay === 'number') && (a.doneDay === undefined || typeof a.doneDay === 'number'))
+  );
+}
+
 export class PracticeStore {
   private listeners = new Set<() => void>();
-  private state: { prefs: Prefs | null; plan: Plan | null; attempts: AttemptLog };
+  private state: { prefs: Prefs | null; plan: Plan | null; attempts: AttemptLog; reviews: ReviewLog };
 
   constructor(private store: SafeStore) {
     this.state = this.load();
@@ -142,6 +155,7 @@ export class PracticeStore {
       prefs: this.store.read('prefs', validatePrefs),
       plan: this.store.read('plan', isPlan),
       attempts: this.store.read('attempts', isAttemptLog) ?? { schema: 1 as const, items: [] },
+      reviews: this.store.read('reviews', isReviewLog) ?? { schema: 1 as const, items: {} },
     };
   }
 
@@ -194,8 +208,26 @@ export class PracticeStore {
     this.emit();
   }
 
+  /** Record activity on review/retry instances (first value wins; a done instance is also started). */
+  markInstances(keys: string[], what: 'started' | 'done', day: number) {
+    const items = { ...this.state.reviews.items };
+    let changed = false;
+    for (const k of keys) {
+      const cur = items[k] ?? {};
+      const next = { ...cur, startedDay: cur.startedDay ?? day, ...(what === 'done' ? { doneDay: cur.doneDay ?? day } : {}) };
+      if (next.startedDay !== cur.startedDay || next.doneDay !== cur.doneDay) {
+        items[k] = next;
+        changed = true;
+      }
+    }
+    if (!changed) return;
+    this.state = { ...this.state, reviews: { schema: 1, items } };
+    this.store.write('reviews', this.state.reviews);
+    this.emit();
+  }
+
   replaceAll(next: { prefs: Prefs | null; plan: Plan | null; attempts: AttemptLog }) {
-    this.state = next;
+    this.state = { ...next, reviews: this.state.reviews };
     if (next.prefs) this.store.write('prefs', next.prefs);
     else this.store.remove('prefs');
     if (next.plan) this.store.write('plan', next.plan);

@@ -24,3 +24,8 @@ export { trapMutabilityDrills } from './c-trap-mutability';
 export { trapNumbersRuntimeDrills } from './c-trap-numbers-runtime';
 export { dequeDrills } from './c-deque';
 export { memoCacheDrills } from './c-memo-cache';
+export { heapqDrills } from './c-heapq';
+export { itertoolsDrills } from './c-itertools';
+export { bisectDrills } from './c-bisect';
+export { nonlocalDrills } from './c-nonlocal';
+export { anyAllDrills } from './c-any-all';

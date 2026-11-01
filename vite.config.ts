@@ -2,7 +2,7 @@ import { defineConfig } from 'vitest/config';
 import react from '@vitejs/plugin-react';
 
 // Relative base: the same build works at a domain root and under a repo subpath
-// such as /python-interview-lab/ on GitHub Pages. Routing is hash-based.
+// such as /python-practice-lab/ on GitHub Pages. Routing is hash-based.
 export default defineConfig({
   base: './',
   plugins: [react()],

@@ -10,6 +10,7 @@ import { validatePrefs, type Plan, type Prefs } from './planner';
 import { isSkillPrefs, type SkillPrefs } from './skill-plan';
 import type { SafeStore } from './storage';
 
+// Stable backup format id from the app's original name (python-interview-lab); kept so old backups import.
 export const BACKUP_APP = 'python-interview-lab';
 
 export interface PlaygroundSaved {

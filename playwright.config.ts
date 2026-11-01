@@ -1,7 +1,7 @@
 import { defineConfig, devices } from '@playwright/test';
 
 // E2E runs against the PRODUCTION build served under the GitHub Pages-style
-// subpath /python-interview-lab/, with the real Pyodide runtime (no stubs).
+// subpath /python-practice-lab/, with the real Pyodide runtime (no stubs).
 const PORT = Number(process.env.E2E_PORT ?? 4173);
 
 export default defineConfig({
@@ -13,12 +13,12 @@ export default defineConfig({
   retries: 0,
   reporter: [['list'], ['json', { outputFile: 'test-results/e2e-results.json' }]],
   use: {
-    baseURL: `http://127.0.0.1:${PORT}/python-interview-lab/`,
+    baseURL: `http://127.0.0.1:${PORT}/python-practice-lab/`,
     trace: 'retain-on-failure',
   },
   webServer: {
     command: `node scripts/serve-dist.mjs --port ${PORT}`,
-    url: `http://127.0.0.1:${PORT}/python-interview-lab/`,
+    url: `http://127.0.0.1:${PORT}/python-practice-lab/`,
     reuseExistingServer: false,
     timeout: 30_000,
   },

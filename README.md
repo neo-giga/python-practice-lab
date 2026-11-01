@@ -2,7 +2,7 @@
 
 A practice lab for Python. The first track is **LeetCode-style coding problems in a plan built from your preferences**: say how long you have, how many hours a week, where you stand and (optionally) what to focus on, and you get a week-by-week plan of original problems, graded in your browser by real CPython compiled to WebAssembly ([Pyodide](https://pyodide.org/)). No install, no account, no backend.
 
-**Website: <https://neo-giga.github.io/python-interview-lab/>** · [Today](https://neo-giga.github.io/python-interview-lab/#/) · [Problems](https://neo-giga.github.io/python-interview-lab/#/problems) · [Reference](https://neo-giga.github.io/python-interview-lab/#/learn) · [Playground](https://neo-giga.github.io/python-interview-lab/#/playground)
+**Website: <https://neo-giga.github.io/python-practice-lab/>** · [Today](https://neo-giga.github.io/python-practice-lab/#/) · [Problems](https://neo-giga.github.io/python-practice-lab/#/problems) · [Reference](https://neo-giga.github.io/python-practice-lab/#/learn) · [Playground](https://neo-giga.github.io/python-practice-lab/#/playground)
 
 | Today on a desktop | Problem workspace on a desktop | Problem on a phone | Plan on a tablet |
 | --- | --- | --- | --- |
@@ -33,7 +33,7 @@ Production build, served under the GitHub Pages subpath:
 
 ```bash
 npm run build
-npm run preview    # http://127.0.0.1:4173/python-interview-lab/
+npm run preview    # http://127.0.0.1:4173/python-practice-lab/
 ```
 
 ## Tests
@@ -93,7 +93,7 @@ Read [`docs/architecture.md`](docs/architecture.md), which covers decisions, pri
 
 ## Deploying (GitHub Pages)
 
-`.github/workflows/ci.yml` runs on pull requests and pushes. It installs from the lockfile and runs the typecheck, the unit and Pyodide corpus tests, the build and the Playwright suite. `.github/workflows/pages.yml` deploys `dist/` from the `dev` branch to GitHub Pages. Its deploy job has only `pages: write` and `id-token: write`, and it refuses to publish if `dev` has moved past the commit it built. The build uses a relative base and hash routes, so it works at any subpath, such as `https://<user>.github.io/python-interview-lab/`, and reloading a deep link works without a 404 fallback.
+`.github/workflows/ci.yml` runs on pull requests and pushes. It installs from the lockfile and runs the typecheck, the unit and Pyodide corpus tests, the build and the Playwright suite. `.github/workflows/pages.yml` deploys `dist/` from the `dev` branch to GitHub Pages. Its deploy job has only `pages: write` and `id-token: write`, and it refuses to publish if `dev` has moved past the commit it built. The build uses a relative base and hash routes, so it works at any subpath, such as `https://<user>.github.io/python-practice-lab/`, and reloading a deep link works without a 404 fallback.
 
 To enable it: in **Settings → Pages**, set *Source: GitHub Actions*.
 

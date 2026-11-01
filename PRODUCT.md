@@ -42,7 +42,7 @@ is preparation.
 
 ## Capabilities and Constraints
 
-- Static site on GitHub Pages under `/python-interview-lab/`; hash routes; storage namespace `pil:v1:` (never renamed).
+- Static site on GitHub Pages under `/python-practice-lab/`; hash routes; storage namespace `pil:v1:` (never renamed).
 - Python runs only in a fresh Pyodide worker per run (about 13.5 MB, downloaded on the first Run only); Stop
   terminates the worker. Speed is not graded.
 - Run examples never records a solve; Submit records attempt, outcome and whether help was used.

@@ -84,7 +84,7 @@ test.describe('Reference (was Cheatsheet)', () => {
   test('Download .md produces the generated cheatsheet', async ({ page }) => {
     await page.goto('#/reference');
     const [download] = await Promise.all([page.waitForEvent('download'), page.getByRole('button', { name: 'Download .md' }).click()]);
-    expect(download.suggestedFilename()).toBe('python-interview-lab-cheatsheet.md');
+    expect(download.suggestedFilename()).toBe('python-practice-lab-cheatsheet.md');
     const path = await download.path();
     const { readFileSync } = await import('node:fs');
     const text = readFileSync(path!, 'utf8');

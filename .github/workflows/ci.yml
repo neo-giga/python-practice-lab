@@ -33,7 +33,7 @@ jobs:
       - run: npm run build
       - name: Install Playwright browsers
         run: npx playwright install --with-deps chromium firefox webkit
-      - name: E2E (real browsers, real Pyodide, production build at /python-interview-lab/)
+      - name: E2E (real browsers, real Pyodide, production build at /python-practice-lab/)
         run: npm run test:e2e
       - name: Cheatsheet is up to date
         run: npm run cheatsheet && git diff --exit-code docs/CHEATSHEET.md

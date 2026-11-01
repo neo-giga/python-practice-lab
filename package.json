@@ -1,5 +1,5 @@
 {
-  "name": "python-interview-lab",
+  "name": "python-practice-lab",
   "private": true,
   "version": "1.0.0",
   "description": "Learn Python 3 interview idioms: cheatsheet, graded drills and a real CPython (Pyodide) playground in the browser.",

@@ -79,7 +79,7 @@ export function LearnPage({ route }: { route: LearnRoute }) {
     const url = URL.createObjectURL(new Blob([md], { type: 'text/markdown' }));
     const a = document.createElement('a');
     a.href = url;
-    a.download = 'python-interview-lab-cheatsheet.md';
+    a.download = 'python-practice-lab-cheatsheet.md';
     a.click();
     setTimeout(() => URL.revokeObjectURL(url), 1000);
   };

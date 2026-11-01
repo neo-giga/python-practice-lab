@@ -1,6 +1,6 @@
 // Serve dist/ under a repository-style subpath, the way GitHub Pages does:
-//   http://127.0.0.1:4173/python-interview-lab/
-// Usage: node scripts/serve-dist.mjs [--port 4173] [--base /python-interview-lab/]
+//   http://127.0.0.1:4173/python-practice-lab/
+// Usage: node scripts/serve-dist.mjs [--port 4173] [--base /python-practice-lab/]
 import { createServer } from 'node:http';
 import { createReadStream, existsSync, statSync } from 'node:fs';
 import { extname, join, normalize, resolve } from 'node:path';
@@ -11,7 +11,7 @@ const opt = (name, fallback) => {
   return i >= 0 ? args[i + 1] : fallback;
 };
 const port = Number(opt('--port', process.env.PORT ?? 4173));
-const base = opt('--base', '/python-interview-lab/');
+const base = opt('--base', '/python-practice-lab/');
 const root = resolve('dist');
 const types = {
   '.html': 'text/html; charset=utf-8',

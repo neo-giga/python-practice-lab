@@ -17,6 +17,7 @@ describe('hash router', () => {
       { page: 'learn', recipeId: 'heap-ties' },
       { page: 'learn', topic: 'heapq', q: 'tie breaker', level: 'advanced' },
       { page: 'playground', recipe: 'counter' },
+      { page: 'playground', skill: 'heapq' },
       { page: 'about' },
     ];
     for (const r of routes) expect(parseHash(href(r))).toEqual(expect.objectContaining(r));

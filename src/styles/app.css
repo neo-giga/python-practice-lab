@@ -621,6 +621,11 @@ main {
 .page-narrow {
   max-width: 720px;
 }
+/* The cheatsheet is a card grid, not prose: it uses the available width, up to four card columns. */
+.page.cheatsheet {
+  max-width: 1720px;
+  --cheat-min: 340px; /* narrowest card; the grid fits as many as the width allows */
+}
 .page-head {
   display: flex;
   align-items: flex-start;
@@ -705,6 +710,12 @@ main {
   color: var(--fail);
   font-size: var(--fs-sm);
   margin: 6px 0 0;
+}
+@media (min-width: 768px) and (max-width: 1199px) {
+  .page.cheatsheet {
+    padding-inline: 24px;
+    --cheat-min: 300px;
+  }
 }
 @media (max-width: 767px) {
   .page {
@@ -2738,6 +2749,11 @@ details.stdin textarea {
   border-color: color-mix(in srgb, var(--pass) 35%, transparent);
   background: var(--pass-bg);
 }
+.freq-essential {
+  color: var(--gray-900);
+  border-color: var(--gray-400);
+  background: var(--gray-100);
+}
 .cheat-tier {
   margin-top: 28px;
 }
@@ -2745,15 +2761,18 @@ details.stdin textarea {
   font-size: var(--fs-lg);
   margin: 0 0 12px;
 }
+.cheat-tier-note {
+  margin: -8px 0 12px;
+}
 .cheat-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(min(100%, 340px), 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, var(--cheat-min, 340px)), 1fr));
   gap: 12px;
   align-items: start;
 }
 .cheat-card {
   min-width: 0;
-  padding: 14px 16px 12px;
+  padding: 12px 14px 10px;
   border: 1px solid var(--gray-400);
   border-radius: var(--r-md);
   background: var(--surface);
@@ -2779,22 +2798,47 @@ details.stdin textarea {
   text-decoration: underline;
 }
 .cheat-summary {
-  margin: 4px 0 10px;
+  margin: 4px 0 8px;
   color: var(--gray-900);
   font-size: var(--fs-md);
 }
 .cheat-card .codeblock {
-  margin: 0 0 10px;
+  margin: 0 0 8px;
 }
 .cheat-card .codeblock pre {
-  white-space: pre;
-  overflow-x: auto;
+  padding: 10px 12px;
   font-size: min(var(--code-size), 12.5px);
+}
+/* Long lines wrap (never clip); a wrapped continuation is indented 2ch so it cannot be read as a new statement. */
+.cheat-card .codeblock .code-line {
+  display: block;
+  padding-left: 2ch;
+  text-indent: -2ch;
+}
+/* Copy / Open in playground under a card's code block: small quiet buttons, full tap height on touch. */
+.cheat-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2px 4px;
+  margin: -4px 0 8px;
+}
+.cheat-actions .btn {
+  min-height: 30px;
+  padding: 0 8px;
+  font-size: var(--fs-sm);
+  color: var(--gray-900);
+}
+.cheat-actions .btn .icon {
+  width: 14px;
+  height: 14px;
+}
+.cheat-actions .is-copied {
+  color: var(--pass);
 }
 .cheat-facts {
   display: grid;
   grid-template-columns: max-content minmax(0, 1fr);
-  gap: 4px 12px;
+  gap: 3px 10px;
   margin: 0;
   font-size: var(--fs-md);
 }
@@ -2976,13 +3020,13 @@ details.stdin textarea {
   .cheat-trap {
     color: #6b3a00;
   }
-  .cheat-card .codeblock pre {
-    white-space: pre-wrap;
-  }
 }
 
 /* ------------------------------------------- touch targets (keep last: wins the cascade) */
 @media (pointer: coarse) {
+  .cheat-actions .btn {
+    min-height: 44px;
+  }
   .chip,
   .segmented button,
   .back-link,

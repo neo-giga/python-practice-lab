@@ -6,6 +6,7 @@ The lab's unit of practice is a **Python skill** (syntax or usage you need in co
 ## Skill drills
 
 - Skills: [`src/content/skills.ts`](../src/content/skills.ts) (ids, tiers, measured frequency). Ids are frozen.
+- Interview essentials ([`src/content/skills-essentials.ts`](../src/content/skills-essentials.ts): classes, code style, math, LeetCode input shapes) are cheatsheet-only cards: no frequency, no drills, not planned into sessions.
 - Schema: [`src/content/drill-schema.ts`](../src/content/drill-schema.ts) (`SkillDrill`). Gate: [`src/content/drill-gate.ts`](../src/content/drill-gate.ts).
 - Templates: [`src/content/drills/_examples.ts`](../src/content/drills/_examples.ts) ("write it" and "fix it").
 

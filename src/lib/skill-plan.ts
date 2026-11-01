@@ -2,8 +2,9 @@
 // (skills, drill bank, preferences, progress). Nothing random, no stored plan: the plan is
 // recomputed from these inputs, so it can never drift from the content or lose progress.
 //
-// - Two strands: Python syntax (ordered by tier, then measured frequency, traps leading Tier 2,
-//   then id) and Algorithm templates (ordered by interview weight, then id).
+// - Two planned strands: Python syntax (ordered by tier, then measured frequency, traps leading
+//   Tier 2, then id) and Algorithm templates (ordered by interview weight, then id). The interview
+//   essentials strand is cheatsheet-only and never planned.
 // - Each skill gets a 20-second reminder card and up to 4 (Tier 1) or 3 drills; a drill tagged
 //   with several skills is used once, under the first skill in plan order.
 // - Skills are packed into daily sessions that fit the minutes-per-day budget (a skill larger
@@ -136,7 +137,7 @@ export function buildSkillPlan(skills: Skill[], bank: BankDrill[], prefs: SkillP
   const peekT = () => (nextT ??= restTemplates.length ? plan1(restTemplates.shift()!) : null);
   while (peekS() || peekT()) {
     const s = open();
-    let mins = { syntax: 0, algorithm: 0 };
+    let mins: Record<SkillStrand, number> = { syntax: 0, algorithm: 0, essentials: 0 };
     for (;;) {
       const a = peekS();
       const b = peekT();

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { drillBank } from '../../src/content/drill-bank';
-import { skills as realSkills } from '../../src/content/skills';
+import { plannedSkills, skills as realSkills } from '../../src/content/skills';
 import type { BankDrill } from '../../src/content/drill-bank';
 import type { Skill } from '../../src/content/skills';
 import { CARD_MINUTES, DEFAULT_SKILL_PREFS, REVIEW_SHARE, buildSkillPlan, drillMinutes, orderSkills, skillStatus, todaySession, type DrillState } from '../../src/lib/skill-plan';
@@ -80,10 +80,11 @@ describe('skill planner', () => {
     expect(skillStatus(ps, (id) => ({ solved: id === 'p', missed: false }))).toBe('in-progress');
     expect(skillStatus(ps, none)).toBe('todo');
   });
-  it('works on the real catalog: every skill appears once, syntax in tier order', () => {
+  it('works on the real catalog: every planned skill appears once (essentials never), syntax in tier order', () => {
     const plan = buildSkillPlan(realSkills, drillBank, DEFAULT_SKILL_PREFS);
     const ids = plan.sessions.flatMap((s) => s.skills.map((x) => x.skillId));
-    expect(new Set(ids).size).toBe(realSkills.length);
+    expect(new Set(ids).size).toBe(ids.length);
+    expect([...ids].sort()).toEqual(plannedSkills.map((s) => s.id).sort());
     const tiers = ids.filter((id) => !id.startsWith('algo-')).map((id) => realSkills.find((s) => s.id === id)!.tier);
     expect([...tiers].sort()).toEqual(tiers);
     for (const s of plan.sessions) for (const x of s.skills) expect(x.minutes).toBe(CARD_MINUTES + x.drillIds.reduce((t, id) => t + drillMinutes(drillBank.find((d) => d.id === id)!), 0));

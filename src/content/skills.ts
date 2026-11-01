@@ -13,11 +13,12 @@
 import frequency from './frequency.json';
 import { skillCheats } from './skill-cheats';
 import { algorithmSkills } from './skills-algorithms';
+import { essentialSkills } from './skills-essentials';
 
 export type SkillTier = 1 | 2 | 3;
 
-/** The two strands of the Coding interview track. */
-export type SkillStrand = 'syntax' | 'algorithm';
+/** The strands of the Coding interview track: measured Python syntax, algorithm templates, and the unmeasured interview essentials. */
+export type SkillStrand = 'syntax' | 'algorithm' | 'essentials';
 
 export interface SkillCheat {
   /** Minimal runnable syntax, a few lines. */
@@ -45,7 +46,7 @@ export interface Skill {
   leetcode: { lc: number; slug: string }[];
   /** Cheatsheet entry (filled for every skill before release; see tests). */
   cheat?: SkillCheat;
-  /** 'algorithm' for algorithm templates; defaults from the id (`algo-*` = algorithm, else syntax). */
+  /** 'algorithm' for algorithm templates, 'essentials' for the interview essentials; defaults from the id (`algo-*` = algorithm, else syntax). */
   strand?: SkillStrand;
   /** Algorithm templates: M1 coding-problem pattern ids (src/content/patterns.ts) whose problems apply it. */
   patterns?: string[];
@@ -94,7 +95,7 @@ const coreSkills: Skill[] = [
   { id: 'nonlocal', title: 'nonlocal (and closures)', tier: 3, frequency: freq('nonlocal'), summary: 'Update an outer variable from a nested helper.', recipeIds: ['closures-nonlocal'], leetcode: [lc(543, 'diameter-of-binary-tree'), lc(124, 'binary-tree-maximum-path-sum'), lc(230, 'kth-smallest-element-in-a-bst')] },
   { id: 'any-all', title: 'any() and all()', tier: 3, frequency: freq('any-all'), summary: 'Short-circuit tests over a generator instead of flag variables.', recipeIds: ['generators', 'comprehensions'], leetcode: [lc(1832, 'check-if-the-sentence-is-pangram'), lc(1550, 'three-consecutive-odds'), lc(896, 'monotonic-array')] },
 ];
-export const skills: Skill[] = [...coreSkills, ...algorithmSkills];
+export const skills: Skill[] = [...coreSkills, ...algorithmSkills, ...essentialSkills];
 
 for (const s of skills) s.cheat ??= skillCheats[s.id];
 
@@ -104,8 +105,9 @@ export const isSkillId = (v: unknown): v is string => typeof v === 'string' && s
 
 export const TIER_LABEL: Record<SkillTier, string> = { 1: 'Must-know', 2: 'Common', 3: 'Good to know' };
 
-/** "used in 24% of solutions" (or "must-know trap" when frequency is null); templates: share of Grind 75 problems. */
+/** "used in 24% of solutions" (or "must-know trap" when frequency is null); templates: share of Grind 75 problems; essentials are not measured. */
 export function frequencyLabel(s: Skill): string {
+  if (strandOf(s) === 'essentials') return 'interview essential, not frequency-measured';
   if (strandOf(s) === 'algorithm') return s.frequency === null ? 'not tagged in Grind 75; advanced template' : `in ${Math.round(s.frequency * 100)}% of Grind 75 interview problems`;
   return s.frequency === null ? 'must-know trap' : `used in ${Math.round(s.frequency * 100)}% of solutions`;
 }
@@ -113,6 +115,9 @@ export function frequencyLabel(s: Skill): string {
 /** A skill's strand: its `strand` field, else `algo-*` ids are algorithm templates. */
 export const strandOf = (s: Pick<Skill, 'id' | 'strand'>): SkillStrand => s.strand ?? (s.id.startsWith('algo-') ? 'algorithm' : 'syntax');
 
-export const STRAND_LABEL: Record<SkillStrand, string> = { syntax: 'Python syntax', algorithm: 'Algorithm templates' };
+export const STRAND_LABEL: Record<SkillStrand, string> = { syntax: 'Python syntax', algorithm: 'Algorithm templates', essentials: 'Interview essentials' };
+
+/** The skills a plan teaches: everything but the interview essentials (cheatsheet-only, no drills). */
+export const plannedSkills: Skill[] = skills.filter((s) => strandOf(s) !== 'essentials');
 
 export const leetcodeUrl = (slug: string) => `https://leetcode.com/problems/${slug}/`;

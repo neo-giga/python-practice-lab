@@ -6,7 +6,7 @@ import { algorithmApplyLinks } from '../content/skills-algorithms';
 import { DRILL_KIND_LABEL } from '../content/drill-schema';
 import { drillById, drillsForSkill } from '../content/drill-bank';
 import { DIFFICULTY_ORDER } from '../content/problem-schema';
-import { STRAND_LABEL, TIER_LABEL, frequencyLabel, leetcodeUrl, skillById, skills, strandOf, type Skill } from '../content/skills';
+import { STRAND_LABEL, TIER_LABEL, frequencyLabel, leetcodeUrl, plannedSkills, skillById, skills, strandOf, type Skill } from '../content/skills';
 import { recipes } from '../content/index';
 import { CodeBlock } from '../components/CodeBlock';
 import { Icon } from '../components/Icon';
@@ -24,8 +24,8 @@ const STATUS_MARK = { done: 'solved', 'in-progress': 'attempted', todo: 'unsolve
 
 export function FreqBadge({ s }: { s: Skill }) {
   return (
-    <span className={`freq ${strandOf(s) === 'algorithm' ? 'freq-algo' : `freq-t${s.tier}`}`} title={frequencyLabel(s)}>
-      {s.frequency === null ? (strandOf(s) === 'algorithm' ? 'adv.' : 'trap') : `${Math.round(s.frequency * 100)}%`}
+    <span className={`freq ${strandOf(s) === 'algorithm' ? 'freq-algo' : strandOf(s) === 'essentials' ? 'freq-essential' : `freq-t${s.tier}`}`} title={frequencyLabel(s)}>
+      {strandOf(s) === 'essentials' ? 'essential' : s.frequency === null ? (strandOf(s) === 'algorithm' ? 'adv.' : 'trap') : `${Math.round(s.frequency * 100)}%`}
     </span>
   );
 }
@@ -43,6 +43,7 @@ export function CheatCard({ s, linkTitle = true, headingLevel = 3 }: { s: Skill;
       {s.cheat && (
         <>
           <CodeBlock code={s.cheat.syntax} />
+          <CheatActions s={s} />
           <dl className="cheat-facts">
             <dt>Use it for</dt>
             <dd>{inline(s.cheat.useCase)}</dd>
@@ -61,8 +62,50 @@ export function CheatCard({ s, linkTitle = true, headingLevel = 3 }: { s: Skill;
   );
 }
 
-/** "Tier 1 · Must-know" for syntax skills, "Algorithm template" for templates. */
-export const placeLabel = (s: Skill) => (strandOf(s) === 'algorithm' ? 'Algorithm template' : `Tier ${s.tier} · ${TIER_LABEL[s.tier]}`);
+/** Copy the snippet, or open it in the Playground, from under a cheat card's code block. */
+function CheatActions({ s }: { s: Skill }) {
+  const [copied, setCopied] = useState(false);
+  const copy = async () => {
+    if (!(await copyText(s.cheat!.syntax))) return;
+    setCopied(true);
+    setTimeout(() => setCopied(false), 1500);
+  };
+  return (
+    <div className="cheat-actions no-print">
+      <button type="button" className={`btn btn-quiet${copied ? ' is-copied' : ''}`} onClick={copy} aria-label={`Copy the ${s.title} code`} data-testid="cheat-copy">
+        <Icon name={copied ? 'check' : 'copy'} />
+        {copied ? 'Copied' : 'Copy'}
+        {copied && <span className="visually-hidden" role="status">Copied to the clipboard</span>}
+      </button>
+      <a className="btn btn-quiet" href={href({ page: 'playground', skill: s.id })} data-testid="cheat-open-playground">
+        <Icon name="play" />
+        Open in playground
+      </a>
+    </div>
+  );
+}
+
+/** Clipboard write with a fallback for browsers without the async clipboard API; true when the text was copied. */
+async function copyText(text: string): Promise<boolean> {
+  try {
+    await navigator.clipboard.writeText(text);
+    return true;
+  } catch {
+    const ta = document.createElement('textarea');
+    ta.value = text;
+    ta.setAttribute('readonly', '');
+    ta.style.position = 'fixed';
+    ta.style.opacity = '0';
+    document.body.appendChild(ta);
+    ta.select();
+    const ok = document.execCommand('copy');
+    ta.remove();
+    return ok;
+  }
+}
+
+/** "Tier 1 · Must-know" for syntax skills, "Algorithm template" for templates, "Interview essential" for the unmeasured cards. */
+export const placeLabel = (s: Skill) => (strandOf(s) === 'algorithm' ? 'Algorithm template' : strandOf(s) === 'essentials' ? 'Interview essential' : `Tier ${s.tier} · ${TIER_LABEL[s.tier]}`);
 
 export function usePlanView() {
   const prefs = useSkillPrefs();
@@ -77,7 +120,7 @@ export function SkillToday() {
   const { prefs, plan, st } = usePlanView();
   if (!prefs || !plan) {
     const syntaxCount = skills.filter((s) => strandOf(s) === 'syntax').length;
-    const templateCount = skills.length - syntaxCount;
+    const templateCount = skills.filter((s) => strandOf(s) === 'algorithm').length;
     const measured = skills.filter((s) => s.frequency !== null && strandOf(s) === 'syntax').length;
     return (
       <div className="page page-narrow today-welcome">
@@ -237,7 +280,7 @@ export function SkillSetup() {
       <div className="setup-foot">
         <p className="setup-summary" data-testid="setup-summary">
           <strong className="tabular">{planFor({ ...DEFAULT_SKILL_PREFS, minutesPerDay: minutes }).sessions.length}</strong> sessions of about {minutes} minutes cover all{' '}
-          {skills.length} skills, most used first.
+          {plannedSkills.length} skills, most used first.
         </p>
         <div className="row">
           <button type="button" className="btn btn-primary" onClick={build} data-testid="setup-finish">
@@ -369,31 +412,33 @@ export function SkillPage({ id }: { id: string }) {
         </div>
       </header>
       <CheatCard s={s} linkTitle={false} />
-      <section className="section" aria-labelledby="drills-h">
-        <div className="section-head">
-          <h2 id="drills-h">Drills</h2>
-          <span className="muted small tabular">
-            {drills.filter((d) => drillState(p, d.id).solved).length}/{drills.length} solved
-          </span>
-        </div>
-        {drills.length ? (
-          <ul className="item-list">
-            {drills.map((d) => (
-              <li key={d.id} className="item-row" data-testid="skill-drill">
-                <StatusMark mark={markOf(p, d.id)} />
-                <div className="item-main">
-                  <a className="item-title" href={href({ page: 'drill', drillId: d.id, from: s.id })}>
-                    {d.title}
-                  </a>
-                  <span className="item-why">{DRILL_KIND_LABEL[d.kind]}</span>
-                </div>
-              </li>
-            ))}
-          </ul>
-        ) : (
-          <p className="muted">Drills for this skill are on their way.</p>
-        )}
-      </section>
+      {strandOf(s) !== 'essentials' && (
+        <section className="section" aria-labelledby="drills-h">
+          <div className="section-head">
+            <h2 id="drills-h">Drills</h2>
+            <span className="muted small tabular">
+              {drills.filter((d) => drillState(p, d.id).solved).length}/{drills.length} solved
+            </span>
+          </div>
+          {drills.length ? (
+            <ul className="item-list">
+              {drills.map((d) => (
+                <li key={d.id} className="item-row" data-testid="skill-drill">
+                  <StatusMark mark={markOf(p, d.id)} />
+                  <div className="item-main">
+                    <a className="item-title" href={href({ page: 'drill', drillId: d.id, from: s.id })}>
+                      {d.title}
+                    </a>
+                    <span className="item-why">{DRILL_KIND_LABEL[d.kind]}</span>
+                  </div>
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <p className="muted">Drills for this skill are on their way.</p>
+          )}
+        </section>
+      )}
       <section className="section" aria-labelledby="lc-h">
         <h2 id="lc-h">Use it on LeetCode</h2>
         <ul className="link-list" data-testid="leetcode-links">

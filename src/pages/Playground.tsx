@@ -6,6 +6,7 @@ import { CodeEditor } from '../components/CodeEditor';
 import { RunSummary, StreamOutput } from '../components/RunOutput';
 import { RuntimeStatus } from '../components/RuntimeStatus';
 import { recipeById } from '../lib/curriculum';
+import { skillById } from '../content/skills';
 import { sourceHash } from '../lib/hash';
 import { href, navigate, type Route } from '../lib/router';
 import type { RunResult } from '../runtime/runner';
@@ -66,6 +67,17 @@ interface Saved {
 const isSaved = (v: unknown): v is Saved =>
   typeof v === 'object' && v !== null && typeof (v as Saved).source === 'string' && typeof (v as Saved).stdin === 'string' && typeof (v as Saved).timeoutMs === 'number';
 
+/** The code a loaded recipe, cheatsheet snippet or example replaced, kept (also across reloads) so "Restore previous code" can bring it back. */
+interface Previous {
+  source: string;
+  /** What replaced it, for the "Loaded …" line. */
+  from: string;
+  /** The code that replaced `source`: while the editor still holds it unedited, loading something else keeps `source` as the restore target. */
+  loaded: string;
+}
+const isPrevious = (v: unknown): v is Previous =>
+  typeof v === 'object' && v !== null && typeof (v as Previous).source === 'string' && typeof (v as Previous).from === 'string' && typeof (v as Previous).loaded === 'string';
+
 const TIMEOUTS = [2000, 5000, 10000, 30000];
 
 export function PlaygroundPage({ route }: { route: PlaygroundRoute }) {
@@ -73,7 +85,23 @@ export function PlaygroundPage({ route }: { route: PlaygroundRoute }) {
   const [source, setSource] = useState(saved.current?.source ?? EXAMPLES[0].code);
   const [stdin, setStdin] = useState(saved.current?.stdin ?? '');
   const [timeoutMs, setTimeoutMs] = useState(TIMEOUTS.includes(saved.current?.timeoutMs ?? 0) ? saved.current!.timeoutMs : 5000);
-  const [previous, setPrevious] = useState<{ source: string; from: string } | null>(null);
+  const [previous, setPreviousState] = useState<Previous | null>(() => store.read('playground-previous', isPrevious));
+  const previousRef = useRef(previous);
+  previousRef.current = previous;
+  const setPrevious = (p: Previous | null) => {
+    setPreviousState(p);
+    if (p) store.write('playground-previous', p);
+    else store.remove('playground-previous');
+  };
+  /** Put `code` in the editor, keeping the user's own code restorable (see Previous). */
+  const load = (code: string, title: string) => {
+    const current = sourceRef.current;
+    if (code === current) return;
+    const prev = previousRef.current;
+    setPrevious({ source: prev && current === prev.loaded ? prev.source : current, from: title, loaded: code });
+    setSource(code);
+    setResult(null);
+  };
   const [live, setLive] = useState<{ stdout: string; stderr: string } | null>(null);
   const [result, setResult] = useState<RunResult | null>(null);
   const [ranHash, setRanHash] = useState<string | null>(null);
@@ -111,17 +139,15 @@ export function PlaygroundPage({ route }: { route: PlaygroundRoute }) {
     return () => clearTimeout(t);
   }, [source, stdin, timeoutMs]);
 
-  // Open a recipe: keep the user's previous code restorable instead of discarding it.
+  // Open a Reference recipe (?recipe=) or a cheatsheet snippet (?skill=), then drop the query from the URL.
   useEffect(() => {
-    if (!route.recipe) return;
-    const r = recipeById.get(route.recipe);
-    if (r && r.code !== sourceRef.current) {
-      setPrevious({ source: sourceRef.current, from: r.title });
-      setSource(r.code);
-      setResult(null);
-    }
+    if (!route.recipe && !route.skill) return;
+    const r = route.recipe ? recipeById.get(route.recipe) : undefined;
+    const sk = route.skill ? skillById.get(route.skill) : undefined;
+    if (r) load(r.code, r.title);
+    else if (sk?.cheat) load(sk.cheat.syntax, sk.title);
     navigate({ page: 'playground' }, true);
-  }, [route.recipe]);
+  }, [route.recipe, route.skill]);
 
   useEffect(
     () =>
@@ -155,18 +181,13 @@ export function PlaygroundPage({ route }: { route: PlaygroundRoute }) {
 
   const loadExample = (id: string) => {
     const ex = EXAMPLES.find((x) => x.id === id);
-    if (!ex || ex.code === source) return;
-    setPrevious({ source, from: ex.title });
-    setSource(ex.code);
-    setResult(null);
+    if (ex) load(ex.code, ex.title);
   };
 
   const reset = () => {
     if (source === EXAMPLES[0].code) return;
     if (!window.confirm('Replace the playground code with the starting example? You can undo once with "Restore previous code".')) return;
-    setPrevious({ source, from: 'the starting example' });
-    setSource(EXAMPLES[0].code);
-    setResult(null);
+    load(EXAMPLES[0].code, 'the starting example');
   };
 
   const shown = live ?? (result ? { stdout: result.stdout, stderr: result.stderr } : null);
@@ -180,7 +201,7 @@ export function PlaygroundPage({ route }: { route: PlaygroundRoute }) {
         </div>
       </header>
       {previous && (
-        <p className="note" role="status">
+        <p className="note" role="status" data-testid="loaded-note">
           Loaded {previous.from}.{' '}
           <button
             type="button"
@@ -188,6 +209,7 @@ export function PlaygroundPage({ route }: { route: PlaygroundRoute }) {
             onClick={() => {
               setSource(previous.source);
               setPrevious(null);
+              setResult(null);
             }}
           >
             Restore previous code

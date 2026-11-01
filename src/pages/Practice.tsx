@@ -7,6 +7,7 @@ import { Drawer } from '../components/Drawer';
 import { RichText, inline } from '../components/RichText';
 import { GradeOutput, RunSummary } from '../components/RunOutput';
 import { RuntimeStatus } from '../components/RuntimeStatus';
+import { useRunFocus } from '../components/useRunFocus';
 import { Segmented } from '../components/ui';
 import { StatusMark } from '../components/ui';
 import { Icon } from '../components/Icon';
@@ -187,6 +188,7 @@ function ExerciseView({ exercise: e, next }: { exercise: Exercise; next: Exercis
   const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const running = phase !== 'idle' && runId !== null && runId === myRun.current;
   const otherBusy = phase !== 'idle' && !running;
+  const markRunFocus = useRunFocus(running);
   const hintsShown = ep?.hintsShown ?? 0;
   const draftOutdated = initialDraft.current && initialDraft.current.exerciseVersion < e.version;
 
@@ -220,6 +222,7 @@ function ExerciseView({ exercise: e, next }: { exercise: Exercise; next: Exercis
 
   const onRun = async () => {
     if (runner.busy) return;
+    markRunFocus();
     const src = sourceRef.current;
     const hash = sourceHash(src);
     flushSave();

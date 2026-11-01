@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { Icon } from '../components/Icon';
 import { radioKeys } from '../components/ui';
+import { useRunFocus } from '../components/useRunFocus';
 import { CodeEditor } from '../components/CodeEditor';
 import { RunSummary, StreamOutput } from '../components/RunOutput';
 import { RuntimeStatus } from '../components/RuntimeStatus';
@@ -80,6 +81,7 @@ export function PlaygroundPage({ route }: { route: PlaygroundRoute }) {
   const myRun = useRef<number | null>(null);
   const running = phase !== 'idle' && runId !== null && runId === myRun.current;
   const otherBusy = phase !== 'idle' && !running;
+  const markRunFocus = useRunFocus(running);
   const sourceRef = useRef(source);
   sourceRef.current = source;
 
@@ -137,6 +139,7 @@ export function PlaygroundPage({ route }: { route: PlaygroundRoute }) {
 
   const run = async () => {
     if (runner.busy) return;
+    markRunFocus();
     const src = sourceRef.current;
     const hash = sourceHash(src);
     setResult(null);

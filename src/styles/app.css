@@ -31,6 +31,7 @@
   --fail: #c62a2f;
   --fail-bg: #fdeded;
   --fail-solid: #e5484d;
+  --danger-fill: #c62a2f; /* white text 5.6:1 */
   --hint: #9a4d00;
   --hint-bg: #fff5d6;
   --hint-solid: #f5a524;
@@ -106,6 +107,7 @@
   --fail: #ff8f8a;
   --fail-bg: #2f1214;
   --fail-solid: #e5484d;
+  --danger-fill: #c62a2f; /* white text 5.6:1 */
   --hint: #f5c24b;
   --hint-bg: #2a1f08;
   --hint-solid: #e2a336;
@@ -151,6 +153,7 @@
     --fail: #ff8f8a;
     --fail-bg: #2f1214;
     --fail-solid: #e5484d;
+    --danger-fill: #c62a2f; /* white text 5.6:1 */
     --hint: #f5c24b;
     --hint-bg: #2a1f08;
     --hint-solid: #e2a336;
@@ -198,6 +201,10 @@ body.no-scroll {
 body.is-resizing {
   user-select: none;
   cursor: col-resize;
+}
+::placeholder {
+  color: var(--gray-900);
+  opacity: 1;
 }
 ::selection {
   background: var(--accent-subtle);
@@ -360,7 +367,7 @@ main:focus {
 }
 }
 .btn-danger {
-  background: var(--fail-solid);
+  background: var(--danger-fill);
   color: #fff;
 }
 .btn-danger:hover {
@@ -1156,17 +1163,6 @@ main {
   font-size: var(--fs-sm);
   color: var(--gray-1000);
   cursor: pointer;
-}
-@media (pointer: coarse) {
-  .chip,
-  .segmented button,
-  .back-link {
-    min-height: 44px;
-  }
-  .keybar button {
-    min-width: 40px;
-    height: 44px;
-  }
 }
 .chip:hover {
   border-color: var(--gray-600);
@@ -2758,5 +2754,24 @@ details.stdin textarea {
   }
   .topic-section > h2 {
     break-after: avoid;
+  }
+}
+
+/* ------------------------------------------- touch targets (keep last: wins the cascade) */
+@media (pointer: coarse) {
+  .chip,
+  .segmented button,
+  .back-link,
+  .topic-chip,
+  .case-head {
+    min-height: 44px;
+  }
+  .keybar button {
+    min-width: 40px;
+    height: 44px;
+  }
+  .topic-chip {
+    display: inline-flex;
+    align-items: center;
   }
 }

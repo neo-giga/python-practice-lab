@@ -124,6 +124,7 @@ export function SetupPage() {
                 key={pr.id}
                 type="button"
                 className={`preset${prefs.weeks === pr.weeks && prefs.hoursPerWeek === pr.hours ? ' is-on' : ''}`}
+                aria-pressed={prefs.weeks === pr.weeks && prefs.hoursPerWeek === pr.hours}
                 onClick={() => {
                   setPrefs((x) => ({ ...x, weeks: pr.weeks, hoursPerWeek: pr.hours }));
                   setStep(2);

@@ -231,6 +231,40 @@ test.describe('Problem workspace runtime states @device', () => {
   });
 });
 
+test.describe('Onboarding taps and run focus @device', () => {
+  test('tapping an unselected card advances to the next question', async ({ page }) => {
+    await page.goto('#/setup');
+    await page.getByRole('radio', { name: /^8 weeks/ }).click();
+    await expect(page.getByRole('heading', { level: 1, name: 'How many hours a week can you practise?' })).toBeVisible();
+    await page.getByRole('radio', { name: /^4 h/ }).click();
+    await expect(page.getByRole('heading', { level: 1, name: 'Where are you with these patterns?' })).toBeVisible();
+    await page.getByRole('radio', { name: /^New to these patterns/ }).click();
+    await expect(page.getByRole('heading', { level: 1, name: 'Anything to focus on?' })).toBeVisible();
+    await expect(page.getByTestId('setup-summary')).toContainText('over 8 weeks');
+  });
+
+  test('focus survives a run: shortcut keeps the editor, a button run returns focus to its button', async ({ page }, info) => {
+    const w = watchErrors(page);
+    await page.goto('#/p/two-sum-indexes');
+    await openCode(page, info);
+    await setEditor(page, TWO_SUM_WRONG);
+    // Hardware-keyboard shortcut (desktop layout): the editor stays focused and keeps taking input after the run.
+    if (!narrowWs(info)) {
+      await page.keyboard.press('ControlOrMeta+Enter');
+      await expect(page.getByTestId('run-summary')).toHaveAttribute('data-mode', 'examples', { timeout: 90_000 });
+      await expect(page.locator('[data-testid=editor] .cm-content')).toBeFocused();
+      await page.keyboard.insertText('# still typing');
+      await expect(page.locator('[data-testid=editor] .cm-content')).toContainText('# still typing');
+    }
+    // Button run: focus goes to Stop during the run (if it lasts) and back to the button after.
+    await page.getByTestId('submit').focus();
+    await page.keyboard.press('Enter');
+    await expect(page.getByTestId('run-summary')).toHaveAttribute('data-mode', 'submit', { timeout: 90_000 });
+    await expect(page.getByTestId('submit')).toBeFocused();
+    expect(w.errors).toEqual([]);
+  });
+});
+
 test.describe('Problem grading and persistence @runtime', () => {
   test('Run examples, Submit, reload: solve and draft survive (every browser)', async ({ page }, info) => {
     const w = watchErrors(page);

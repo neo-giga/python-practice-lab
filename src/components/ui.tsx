@@ -60,7 +60,9 @@ export function ChoiceGroup<T extends string | number>({
 }) {
   const tapped = useRef(false);
   return (
-    <fieldset className="choices" style={columns ? ({ '--cols': columns } as React.CSSProperties) : undefined}>
+    <fieldset
+      onKeyDown={() => (tapped.current = false)}
+      className="choices" style={columns ? ({ '--cols': columns } as React.CSSProperties) : undefined}>
       <legend className="visually-hidden">{label}</legend>
       {options.map((o) => (
         <label key={String(o.value)} className={`choice${o.value === value ? ' is-on' : ''}`} onPointerDown={() => (tapped.current = true)}>
@@ -74,8 +76,12 @@ export function ChoiceGroup<T extends string | number>({
               tapped.current = false;
             }}
             onClick={() => {
-              if (o.value === value && tapped.current) onChange(o.value, true);
-              tapped.current = false;
+              // Re-tapping the selected card still advances (no change event fires). Do not
+              // clear the flag here: React may run this before onChange, which reads it.
+              if (o.value === value && tapped.current) {
+                tapped.current = false;
+                onChange(o.value, true);
+              }
             }}
           />
           <span className="choice-label">{o.label}</span>

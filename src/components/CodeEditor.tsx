@@ -64,7 +64,8 @@ export function CodeEditor({ value, onChange, onRun, onSubmit, readOnly = false,
           python(),
           editorTheme,
           EditorView.lineWrapping,
-          ro.current.of([EditorState.readOnly.of(readOnly), EditorView.editable.of(!readOnly)]),
+          // Read-only blocks edits but keeps the editor focusable, so a run never throws focus out.
+          ro.current.of(EditorState.readOnly.of(readOnly)),
           EditorView.contentAttributes.of({ 'aria-label': label }),
           EditorView.theme({ '.cm-content': { minHeight: `${minLines * 1.5}em` } }),
           EditorView.updateListener.of((u) => {
@@ -101,7 +102,7 @@ export function CodeEditor({ value, onChange, onRun, onSubmit, readOnly = false,
 
   useEffect(() => {
     view.current?.dispatch({
-      effects: ro.current.reconfigure([EditorState.readOnly.of(readOnly), EditorView.editable.of(!readOnly)]),
+      effects: ro.current.reconfigure(EditorState.readOnly.of(readOnly)),
     });
   }, [readOnly]);
 

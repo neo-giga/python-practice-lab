@@ -13,6 +13,7 @@ import { Drawer } from '../components/Drawer';
 import { Icon } from '../components/Icon';
 import { RichText, inline } from '../components/RichText';
 import { RuntimeStatus } from '../components/RuntimeStatus';
+import { useRunFocus } from '../components/useRunFocus';
 import { DifficultyTag } from '../components/ui';
 import { Verdict, verdictOf } from '../components/Verdict';
 import { adaptPlan, isFinished, itemHref, itemState, patternTitle, problemById, whyLine, titleOf, todayDay } from '../lib/coding';
@@ -138,6 +139,7 @@ function Workspace({ problem: e }: { problem: CodingProblem }) {
   const failsThisVisit = useRef(0);
   const running = phase !== 'idle' && runId !== null && runId === myRun.current;
   const otherBusy = phase !== 'idle' && !running;
+  const markRunFocus = useRunFocus(running);
   const hintsShown = ep?.hintsShown ?? 0;
   const draftOutdated = initialDraft.current && initialDraft.current.exerciseVersion < e.version;
 
@@ -177,6 +179,7 @@ function Workspace({ problem: e }: { problem: CodingProblem }) {
 
   const run = async (mode: 'examples' | 'submit') => {
     if (runner.busy) return;
+    markRunFocus();
     const src = sourceRef.current;
     const hash = sourceHash(src);
     flushSave();

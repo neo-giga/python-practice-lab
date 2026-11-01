@@ -40,3 +40,23 @@ export { itertoolsDrills } from './c-itertools';
 export { bisectDrills } from './c-bisect';
 export { nonlocalDrills } from './c-nonlocal';
 export { anyAllDrills } from './c-any-all';
+
+// --- Writer D (algorithm templates) ---
+export { dAlgoBfsDrills } from './d-algo-bfs';
+export { dAlgoDfsDrills } from './d-algo-dfs';
+export { dAlgoBinarySearchDrills } from './d-algo-binary-search';
+export { dAlgoBacktrackingDrills } from './d-algo-backtracking';
+export { dAlgoSlidingWindowDrills } from './d-algo-sliding-window';
+export { dAlgoTwoPointersDrills } from './d-algo-two-pointers';
+export { dAlgoTreeTraversalDrills } from './d-algo-tree-traversal';
+export { dAlgoDpDrills } from './d-algo-dp';
+export { dAlgoHashmapCountingDrills } from './d-algo-hashmap-counting';
+export { dAlgoMonotonicStackDrills } from './d-algo-monotonic-stack';
+export { dAlgoHeapTopkDrills } from './d-algo-heap-topk';
+export { dAlgoIntervalsDrills } from './d-algo-intervals';
+export { dAlgoLinkedListDrills } from './d-algo-linked-list';
+export { dAlgoTopoSortDrills } from './d-algo-topo-sort';
+export { dAlgoUnionFindDrills } from './d-algo-union-find';
+export { dAlgoDijkstraDrills } from './d-algo-dijkstra';
+export { dAlgoTrieDrills } from './d-algo-trie';
+export { dAlgoBitTricksDrills } from './d-algo-bit-tricks';

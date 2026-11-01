@@ -12,6 +12,7 @@
 
 import frequency from './frequency.json';
 import { skillCheats } from './skill-cheats';
+import { algorithmSkills } from './skills-algorithms';
 
 export type SkillTier = 1 | 2 | 3;
 
@@ -62,7 +63,7 @@ export const interviewShare = (...tags: string[]): number => {
   return Math.min(1, Math.round(tags.reduce((t, k) => t + (a[k]?.share ?? 0), 0) * 1e4) / 1e4);
 };
 
-export const skills: Skill[] = [
+const coreSkills: Skill[] = [
   // ------------------------------------------------------------------ Tier 1
   { id: 'loops-range', title: 'for loops and range()', tier: 1, frequency: freq('loops-range'), summary: 'Iterate a count or indexes with range(start, stop, step), including reverse loops.', recipeIds: ['range-enumerate', 'for-else'], leetcode: [lc(1, 'two-sum'), lc(121, 'best-time-to-buy-and-sell-stock'), lc(53, 'maximum-subarray'), lc(238, 'product-of-array-except-self')] },
   { id: 'indexing-len', title: 'len(), indexing and negative indexes', tier: 1, frequency: freq('indexing-len'), summary: 'a[i], a[-1], len(a) and the off-by-one boundaries around them.', recipeIds: ['list-basics', 'string-slicing'], leetcode: [lc(26, 'remove-duplicates-from-sorted-array'), lc(66, 'plus-one'), lc(88, 'merge-sorted-array'), lc(27, 'remove-element')] },
@@ -100,6 +101,7 @@ export const skills: Skill[] = [
   { id: 'nonlocal', title: 'nonlocal (and closures)', tier: 3, frequency: freq('nonlocal'), summary: 'Update an outer variable from a nested helper.', recipeIds: ['closures-nonlocal'], leetcode: [lc(543, 'diameter-of-binary-tree'), lc(124, 'binary-tree-maximum-path-sum'), lc(230, 'kth-smallest-element-in-a-bst')] },
   { id: 'any-all', title: 'any() and all()', tier: 3, frequency: freq('any-all'), summary: 'Short-circuit tests over a generator instead of flag variables.', recipeIds: ['generators', 'comprehensions'], leetcode: [lc(1832, 'check-if-the-sentence-is-pangram'), lc(1550, 'three-consecutive-odds'), lc(896, 'monotonic-array')] },
 ];
+export const skills: Skill[] = [...coreSkills, ...algorithmSkills];
 
 for (const s of skills) s.cheat ??= skillCheats[s.id];
 

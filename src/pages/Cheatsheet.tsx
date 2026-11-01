@@ -8,7 +8,8 @@ import { CheatCard } from './SkillPages';
 
 const syntaxSkills = orderSkills(skills.filter((s) => strandOf(s) === 'syntax'));
 const templateSkills = orderTemplates(skills.filter((s) => strandOf(s) === 'algorithm'));
-const ordered = [...syntaxSkills, ...templateSkills];
+const essentialSkills = skills.filter((s) => strandOf(s) === 'essentials'); // curated order, not measured
+const ordered = [...syntaxSkills, ...templateSkills, ...essentialSkills];
 const haystack = (s: (typeof skills)[number]) => [s.title, s.summary, s.cheat?.syntax, s.cheat?.useCase, s.cheat?.trap, s.id].join('\n').toLowerCase();
 
 export function CheatsheetPage({ route }: { route: Extract<Route, { page: 'cheatsheet' }> }) {
@@ -35,6 +36,7 @@ export function CheatsheetPage({ route }: { route: Extract<Route, { page: 'cheat
           <p className="lede">
             Every Python skill a LeetCode solution needs, most used first; the percentage is the share of solutions that use it.
             {templateSkills.length > 0 && ' Then the algorithm templates to write from memory, by how often interview problems need them.'}
+            {essentialSkills.length > 0 && ' Last, the interview essentials: classes for design questions, code style, the math module and input shapes, which are not frequency-measured.'}
           </p>
         </div>
         <div className="head-actions no-print">
@@ -81,6 +83,19 @@ export function CheatsheetPage({ route }: { route: Extract<Route, { page: 'cheat
           <div className="cheat-grid">
             {visible
               .filter((s) => strandOf(s) === 'algorithm')
+              .map((s) => (
+                <CheatCard key={s.id} s={s} />
+              ))}
+          </div>
+        </section>
+      )}
+      {visible.some((s) => strandOf(s) === 'essentials') && (
+        <section className="cheat-tier" aria-labelledby="tier-h-essentials" data-testid="cheat-essentials">
+          <h2 id="tier-h-essentials">{STRAND_LABEL.essentials}</h2>
+          <p className="muted small cheat-tier-note">Not frequency-measured: what interviewers expect beyond LeetCode syntax, in reading order.</p>
+          <div className="cheat-grid">
+            {visible
+              .filter((s) => strandOf(s) === 'essentials')
               .map((s) => (
                 <CheatCard key={s.id} s={s} />
               ))}

@@ -2749,12 +2749,20 @@ details.stdin textarea {
   border-color: color-mix(in srgb, var(--pass) 35%, transparent);
   background: var(--pass-bg);
 }
+.freq-essential {
+  color: var(--gray-900);
+  border-color: var(--gray-400);
+  background: var(--gray-100);
+}
 .cheat-tier {
   margin-top: 28px;
 }
 .cheat-tier > h2 {
   font-size: var(--fs-lg);
   margin: 0 0 12px;
+}
+.cheat-tier-note {
+  margin: -8px 0 12px;
 }
 .cheat-grid {
   display: grid;

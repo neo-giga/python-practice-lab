@@ -3,7 +3,7 @@
 import { exercises, skillDrills } from './index';
 import type { DrillKind } from './drill-schema';
 import type { Exercise } from './schema';
-import { skills } from './skills';
+import { skills, strandOf, type Skill } from './skills';
 
 export interface BankDrill {
   id: string;
@@ -53,10 +53,12 @@ export const drillsForSkill = (skillId: string) => drillBank.filter((d) => d.ski
 
 /** Drills required per skill: Tier 1 >= 4, others >= 3. */
 export const requiredDrills = (tier: 1 | 2 | 3) => (tier === 1 ? 4 : 3);
+/** Per skill: the tier rule, except interview essentials, which are cheatsheet-only (no drills, never planned). */
+export const requiredDrillsFor = (s: Skill) => (strandOf(s) === 'essentials' ? 0 : requiredDrills(s.tier));
 
 export function skillCoverage() {
   return skills.map((s) => {
     const n = drillsForSkill(s.id).length;
-    return { id: s.id, tier: s.tier, drills: n, required: requiredDrills(s.tier), cheat: !!s.cheat, ok: n >= requiredDrills(s.tier) && !!s.cheat };
+    return { id: s.id, tier: s.tier, drills: n, required: requiredDrillsFor(s), cheat: !!s.cheat, ok: n >= requiredDrillsFor(s) && !!s.cheat };
   });
 }

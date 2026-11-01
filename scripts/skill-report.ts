@@ -1,4 +1,4 @@
-// Drill and cheatsheet coverage per skill against the targets (Tier 1 >= 4 drills, others >= 3; every skill a cheatsheet entry).
+// Drill and cheatsheet coverage per skill against the targets (Tier 1 >= 4 drills, others >= 3, interview essentials none; every skill a cheatsheet entry).
 //   npm run skills              # table (exit 0)
 //   npm run skills -- --strict  # exit 1 if any skill is short
 import { drillBank, skillCoverage } from '../src/content/drill-bank';

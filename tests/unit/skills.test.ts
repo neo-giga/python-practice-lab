@@ -78,3 +78,25 @@ describe('algorithm templates (algo-* strand)', () => {
     }
   });
 });
+
+describe('interview essentials (essentials strand)', () => {
+  it('are cheatsheet-only: unmeasured, labelled as essentials, never planned, no drill requirement', async () => {
+    const { strandOf, plannedSkills, STRAND_LABEL } = await import('../../src/content/skills');
+    const { requiredDrillsFor, skillCoverage } = await import('../../src/content/drill-bank');
+    const { buildSkillPlan, planOrder, DEFAULT_SKILL_PREFS } = await import('../../src/lib/skill-plan');
+    const { drillBank } = await import('../../src/content/drill-bank');
+    const essentials = skills.filter((s) => strandOf(s) === 'essentials');
+    expect(essentials.length).toBeGreaterThanOrEqual(5);
+    expect(STRAND_LABEL.essentials).toBe('Interview essentials');
+    for (const s of essentials) {
+      expect(s.frequency, s.id).toBeNull();
+      expect(frequencyLabel(s), s.id).toBe('interview essential, not frequency-measured');
+      expect(requiredDrillsFor(s), s.id).toBe(0);
+    }
+    expect(skillCoverage().filter((r) => !r.ok)).toEqual([]);
+    expect(plannedSkills.some((s) => strandOf(s) === 'essentials')).toBe(false);
+    const planned = planOrder(buildSkillPlan(skills, drillBank, DEFAULT_SKILL_PREFS));
+    expect(planned.length).toBe(plannedSkills.length);
+    for (const s of essentials) expect(planned, s.id).not.toContain(s.id);
+  });
+});

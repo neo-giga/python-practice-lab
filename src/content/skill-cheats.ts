@@ -10,8 +10,9 @@ export const skillCheats: Record<string, SkillCheatEntry> = {
       first, last = a[0], a[-1]  # a[-1] is a[len(a) - 1]
       for i in range(n - 1):  # pairs a[i], a[i + 1]
           pass
+      print(n, first, last, a.count(1), a.index(4))  # 5 3 5 2 2; index raises if missing
     `,
-    useCase: 'Array problems: last element, neighbours, scanning with an index.',
+    useCase: 'Array problems: last element, neighbours, scanning with an index, counting a value.',
     trap: 'a[len(a)] is an IndexError; a[-1] on an empty list too. Loops over pairs stop at n - 1.',
     complexity: 'len() and indexing are O(1).',
   },
@@ -20,10 +21,14 @@ export const skillCheats: Record<string, SkillCheatEntry> = {
       for i in range(5): ...  # 0..4
       for i in range(2, 10, 3): ...  # 2, 5, 8
       for i in range(4, -1, -1): ...  # 4..0, counting down
-      for x in reversed([1, 2, 3]): ... # 3, 2, 1
+      for x in reversed([1, 2, 3]): ...  # 3, 2, 1
+      for x in [1, 3]:
+          if x == 2: break
+      else:
+          print("no break")  # for-else: runs when the loop never hit break
     `,
-    useCase: 'Almost every array problem: scan, count, build a result.',
-    trap: 'range(stop) excludes stop; counting down to 0 needs stop = -1.',
+    useCase: 'Almost every array problem: scan, count, build a result; for-else for "not found".',
+    trap: 'range(stop) excludes stop; counting down to 0 needs stop = -1. The else of a loop runs after a loop that did not break, not when it is empty.',
   },
   'assign-swap': {
     syntax: py`
@@ -34,8 +39,11 @@ export const skillCheats: Record<string, SkillCheatEntry> = {
       first, *rest = [1, 2, 3]
       prev, curr = 0, 1
       prev, curr = curr, prev + curr  # right side is evaluated first
+      def min_max(nums): return min(nums), max(nums)  # several results: a tuple
+      lo, hi = min_max([4, 2, 9])
+      print(a, b, rest, curr, lo, hi)  # 2 1 [2, 3] 1 2 9
     `,
-    useCase: 'Two-variable DP (Fibonacci, house robber), swapping in place, reversing a linked list.',
+    useCase: 'Two-variable DP (Fibonacci, house robber), swapping in place, reversing a linked list, returning several values.',
     trap: 'Sequential assignments (prev = curr; curr = prev + curr) use the new prev; tuple assignment does not.',
   },
   'builtins-aggregate': {
@@ -59,9 +67,11 @@ export const skillCheats: Record<string, SkillCheatEntry> = {
       dp = [0] * 5
       res = []
       res.extend([1, 2])
+      res.remove(1)  # first match only; ValueError if missing
+      print(top, dp, res)  # 3 [0, 0, 0, 0, 0] [2]
     `,
     useCase: 'Stacks (parentheses, monotonic stack), DP arrays, building results.',
-    trap: 'pop(0) is O(n): use collections.deque for a queue. append returns None.',
+    trap: 'pop(0) is O(n): use collections.deque for a queue. append returns None. remove(x) and index(x) raise ValueError when x is absent.',
     complexity: 'append/pop O(1) amortised; insert(0, x)/pop(0) O(n).',
   },
   comprehensions: {
@@ -69,10 +79,12 @@ export const skillCheats: Record<string, SkillCheatEntry> = {
       squares = [x * x for x in range(5) if x % 2 == 0]
       pos = {v: i for i, v in enumerate("abc")}
       seen = {x % 3 for x in range(10)}
+      flat = [v for row in [[1, 2], [3]] for v in row]  # nested: outer loop first
       total = sum(x for x in range(10) if x > 5)  # generator: no list built
+      print(squares, pos, seen, flat, total)
     `,
-    useCase: 'Building lists, index maps and sets in one line; feeding sum/any/max.',
-    trap: 'A generator can be consumed only once.',
+    useCase: 'Building lists, index maps and sets in one line; flattening a grid; feeding sum/any/max.',
+    trap: 'A generator can be consumed only once. {x: nums.count(x) for x in nums} is O(n²): count with Counter(nums).',
   },
   'recursion-helpers': {
     syntax: py`
@@ -97,6 +109,7 @@ export const skillCheats: Record<string, SkillCheatEntry> = {
       n = 1234
       while n:  # digits
           n //= 10
+      print(lo, hi, n)  # 2 2 0
     `,
     useCase: 'Binary search, two pointers, sliding windows, digit loops.',
     trap: 'Forgetting to move a pointer is an infinite loop; check lo < hi vs lo <= hi.',
@@ -120,6 +133,7 @@ export const skillCheats: Record<string, SkillCheatEntry> = {
           pass
       gaps = [b - a for a, b in zip([1, 4, 9], [4, 9])]
       cols = list(zip(*[[1, 2], [3, 4]]))  # transpose
+      print(gaps, cols)  # [3, 5] [(1, 3), (2, 4)]
     `,
     useCase: 'Index + value (two sum), pairwise comparisons, transposing a grid.',
     trap: 'zip stops at the shortest input.',
@@ -129,6 +143,8 @@ export const skillCheats: Record<string, SkillCheatEntry> = {
       from collections import Counter, defaultdict
       d = {}
       d["a"] = d.get("a", 0) + 1
+      d.pop("zz", None)  # delete without KeyError (del d["zz"] raises)
+      for key, val in d.items(): ...  # also d.keys(), d.values()
       cnt = Counter("banana")  # Counter({'a': 3, 'n': 2, 'b': 1})
       print(cnt.most_common(1))  # [('a', 3)]
       groups = defaultdict(list)
@@ -147,6 +163,7 @@ export const skillCheats: Record<string, SkillCheatEntry> = {
           nr, nc = r + dr, c + dc
           if 0 <= nr < rows and 0 <= nc < cols:
               grid[nr][nc] = 1
+      print(grid[1])  # [0, 1, 0, 1]
     `,
     useCase: 'Islands, matrix traversal, grid DP, BFS on a board.',
     trap: '[[0] * cols] * rows repeats one row object: changing one row changes all.',
@@ -169,8 +186,9 @@ export const skillCheats: Record<string, SkillCheatEntry> = {
       label = "empty" if not [] else "has items"
       value = None
       print(value if value is not None else 0)
+      print(0 or "default", 3 and 4, not 0)  # default 4 True: and/or return an operand
     `,
-    useCase: 'Picking between two values inline; guarding None.',
+    useCase: 'Picking between two values inline; guarding None; x or default.',
     trap: '0, "", [] and None are all falsy: test "is None" when 0 is a valid value.',
   },
   slicing: {
@@ -181,6 +199,7 @@ export const skillCheats: Record<string, SkillCheatEntry> = {
       a = [1, 2, 3]
       b = a[:]  # shallow copy
       a[1:3] = [9]  # slice assignment
+      print(b, a)  # [1, 2, 3] [1, 9]
     `,
     useCase: 'Palindromes, reversing, rotating arrays, substrings.',
     trap: 'A slice makes a copy: O(k) time and memory, and changes to it do not affect the original.',
@@ -215,8 +234,10 @@ export const skillCheats: Record<string, SkillCheatEntry> = {
       pairs = [(1, "b"), (1, "a"), (0, "z")]
       pairs.sort(key=lambda p: (-p[0], p[1]))
       print(pairs)  # [(1, 'a'), (1, 'b'), (0, 'z')]
+      by_count = sorted({"a": 3, "b": 1}.items(), key=lambda kv: kv[1])  # dict by value
+      print(sorted(["bb", "a"], key=len), by_count)  # ['a', 'bb'] [('b', 1), ('a', 3)]
     `,
-    useCase: 'Intervals, greedy choices, k closest, custom orders.',
+    useCase: 'Intervals, greedy choices, k closest, custom orders, a dict ordered by its values.',
     trap: 'a = a.sort() sets a to None. Sorting is stable, so multi-key sorts work.',
     complexity: 'O(n log n).',
   },
@@ -242,8 +263,9 @@ export const skillCheats: Record<string, SkillCheatEntry> = {
       digits = [int(c) for c in "907"]
       print("".join(map(str, digits)), list("abc"))
       print(int(-2.7), round(2.5))  # -2 2 (banker's rounding)
+      print(f"{42:05d}", f"{3.14159:.2f}", f"{'x'}-{7 * 6}")  # 00042 3.14 x-42
     `,
-    useCase: 'Add binary/strings, digits of a number, parsing input.',
+    useCase: 'Add binary/strings, digits of a number, parsing input, formatting output.',
     trap: 'int() truncates toward zero; round() rounds half to even.',
   },
   sets: {
@@ -251,7 +273,7 @@ export const skillCheats: Record<string, SkillCheatEntry> = {
       s = {1, 2}
       s.add(3)
       s.discard(9)  # no error if missing (remove raises)
-      print(s & {2, 3}, s | {5}, s - {1})
+      print(s & {2, 3}, s | {5}, s - {1}, s ^ {1, 9})  # {2, 3} {1, 2, 3, 5} {2, 3} {2, 3, 9}
       points = {(0, 1), (2, 3)}  # tuples are hashable, lists are not
     `,
     useCase: 'Seen-sets, deduplication, intersection of arrays, visited cells.',
@@ -260,15 +282,15 @@ export const skillCheats: Record<string, SkillCheatEntry> = {
   },
   strings: {
     syntax: py`
-      words = "  the sky  ".split()  # ['the', 'sky']
-      print(" ".join(reversed(words)))
+      words = "  the sky  ".split()  # ['the', 'sky']; split(" ") keeps empty strings
+      print(" ".join(reversed(words)), "a,b".split(","))
       print(ord("a"), chr(98), ord("c") - ord("a"))
-      print("a1".isalnum(), "7".isdigit(), "Ab".lower())
-      parts = []
-      parts.append("x")
-      out = "".join(parts)  # build, then join once
+      print("a1".isalnum(), "7".isdigit(), "x".isalpha(), "Ab".lower(), " x ".strip())
+      print("hello".find("z"), "hello".replace("l", "L"), "hi".startswith("h"))  # -1 heLLo True
+      chars = list("abc"); chars[0] = "X"  # strings are immutable: edit a list, join once
+      print("".join(chars))  # Xbc
     `,
-    useCase: 'Reverse words, anagrams by letter index, parsing, palindromes.',
+    useCase: 'Reverse words, anagrams by letter index, parsing, palindromes, editing characters.',
     trap: 'Strings are immutable: s += c in a loop is O(n^2) worst case; collect parts and join.',
   },
   'trap-mutability': {
@@ -281,6 +303,7 @@ export const skillCheats: Record<string, SkillCheatEntry> = {
           return items
       import copy
       deep = copy.deepcopy(good)  # nested copy; good[:] copies one level
+      print(bad, good, add(1), add(2), deep is good)  # [[1, 0], [1, 0]] [[0, 0], [0, 0]] [1] [2] False
     `,
     useCase: 'Grids, default arguments, copying state in backtracking.',
     trap: 'sort()/append()/reverse() return None; a default list is shared across calls; a[:] is shallow.',
@@ -291,7 +314,7 @@ export const skillCheats: Record<string, SkillCheatEntry> = {
       import sys
       print(sys.getrecursionlimit() >= 1000)
       try:
-          import sortedcontainers  # not available in this browser runtime
+          import sortedcontainers  # not installed here
       except ImportError:
           print("use bisect / heapq instead")
     `,
@@ -315,9 +338,12 @@ export const skillCheats: Record<string, SkillCheatEntry> = {
       q = deque([(0, 0)])
       q.append((0, 1))
       r, c = q.popleft()  # O(1), unlike list.pop(0)
+      q.appendleft((9, 9))
+      print(q[0], q[-1])  # (9, 9) (0, 1): peek both ends
       window = deque(maxlen=3)
       for x in range(5):
           window.append(x)  # keeps the last 3
+      print(window)  # deque([2, 3, 4], maxlen=3)
     `,
     useCase: 'BFS (level order, rotting oranges), sliding window maximum.',
     trap: 'Indexing the middle of a deque is O(n); use it at the ends.',
@@ -333,7 +359,7 @@ export const skillCheats: Record<string, SkillCheatEntry> = {
       ways.cache_clear()
     `,
     useCase: 'Top-down DP: climbing stairs, unique paths, word break.',
-    trap: 'Arguments must be hashable (pass tuples, not lists); the cache persists between calls.',
+    trap: 'Arguments must be hashable (pass tuples, not lists); the cache persists between calls, so cache_clear() between test cases. @lru_cache(maxsize=None) is the older spelling of @cache.',
   },
   heapq: {
     syntax: py`
@@ -341,9 +367,10 @@ export const skillCheats: Record<string, SkillCheatEntry> = {
       h = []
       heapq.heappush(h, (2, "b"))
       heapq.heappush(h, (1, "a"))
-      print(heapq.heappop(h))  # (1, 'a'): smallest first
-      print(heapq.nlargest(2, [5, 1, 9])) # [9, 5]
-      mx = [-x for x in [3, 7]]; heapq.heapify(mx); print(-mx[0])  # max-heap by negation
+      print(heapq.heappop(h), h[0])  # (1, 'a') (2, 'b'): smallest first; h[0] peeks
+      print(heapq.nlargest(2, [5, 1, 9]), heapq.nsmallest(1, [5, 1, 9]))  # [9, 5] [1]
+      mx = [-x for x in [3, 7]]; heapq.heapify(mx)
+      print(-mx[0])  # 7: max-heap by negation
     `,
     useCase: 'Kth largest, top k frequent, merge k sorted lists, Dijkstra.',
     trap: 'Min-heap only; negate for a max-heap. Ties compare the next tuple field, so add a counter if it is not comparable.',

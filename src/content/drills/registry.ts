@@ -9,5 +9,6 @@ export { exampleDrills } from './_examples';
 // --- Writer B (Tier 1 skills) ---
 export { loopsRangeDrills } from './b-loops-range';
 export { indexingLenDrills } from './b-indexing-len';
+export { assignSwapDrills } from './b-assign-swap';
 
 // --- Writer C (Tier 2-3 skills and traps) ---

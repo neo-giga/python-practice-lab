@@ -67,7 +67,7 @@
   --r-md: 10px;
   --r-lg: 14px;
   --tap: 40px;
-  --rail-w: 232px;
+  --rail-w: 244px;
   --topbar-h: 52px;
   --tabbar-h: 60px;
   --dock-h: 122px;
@@ -2880,11 +2880,22 @@ details.stdin textarea {
 .choice.is-disabled:hover {
   border-color: var(--gray-400);
 }
+.brand:has(.preview-tag) {
+  gap: 6px;
+  padding: 0 4px;
+}
+.callout > h2:first-child {
+  margin-top: 0;
+}
+.brand:has(.preview-tag) .brand-name {
+  white-space: nowrap;
+}
 .preview-tag {
   flex: none;
-  padding: 1px 7px;
+  padding: 0 6px;
+  font-size: 10.5px;
+  line-height: 17px;
   border-radius: 999px;
-  font-size: var(--fs-xs);
   font-weight: 600;
   color: var(--hint);
   background: var(--hint-bg);

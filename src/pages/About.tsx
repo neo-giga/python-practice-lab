@@ -86,12 +86,12 @@ export function AboutPage() {
       <h2>How it works</h2>
       <ul>
         <li>
-          <strong>Practice problems (linked from skills later):</strong> {codingProblems.length} original problems across 22 patterns. Tell the setup how much time
-          you have and where you stand; the plan orders patterns so prerequisites come first, fits your hours, explains every pick, and adapts:
-          a pass schedules a review, three failed submits bring an easier sibling and a retry. Stop, timeouts and load failures never count.
+          <strong>Skills, sessions and drills:</strong> each skill has a cheatsheet card and short graded drills (write, fix, idiom or predict).
+          A session shows the card, then the drills; Run tests shows the first failing case with expected and actual output. A drill counts as
+          solved when your code passes every case; viewing the solution counts as solved with help. Missed drills come back later.
         </li>
         <li>
-          <strong>Run examples and Submit:</strong> Run examples checks only the worked examples and never records a solve. Submit checks every
+          <strong>Practice problems ({codingProblems.length}, reachable by link):</strong> Run examples checks only the worked examples and never records a solve. Submit checks every
           case. A problem counts as solved only when a specific version of your code passes every case of the current problem version; viewing
           the solution is tracked separately. Speed is not graded.
         </li>

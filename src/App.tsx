@@ -91,6 +91,21 @@ export function App() {
     }
   }, [route]);
 
+  // Software keyboards: iOS keeps fixed elements at the layout-viewport bottom (behind the
+  // keyboard); expose the covered height so the workspace dock can sit above it.
+  useEffect(() => {
+    const vv = window.visualViewport;
+    if (!vv) return;
+    const on = () => document.documentElement.style.setProperty('--kb-offset', `${Math.max(0, Math.round(window.innerHeight - vv.height - vv.offsetTop))}px`);
+    on();
+    vv.addEventListener('resize', on);
+    vv.addEventListener('scroll', on);
+    return () => {
+      vv.removeEventListener('resize', on);
+      vv.removeEventListener('scroll', on);
+    };
+  }, []);
+
   useEffect(() => {
     document.title = `${TITLES[route.page]} · Python Practice Lab`;
   }, [route.page]);

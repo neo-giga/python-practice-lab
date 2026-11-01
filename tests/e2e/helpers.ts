@@ -29,7 +29,22 @@ export async function setEditor(page: Page, code: string) {
   const content = page.locator('[data-testid=editor] .cm-content');
   await content.click();
   await page.keyboard.press('ControlOrMeta+A');
-  await page.keyboard.press('Delete');
+  // Mobile-WebKit device emulation can drop the select-all shortcut; fall back to a DOM
+  // selection over the editor content (CodeMirror adopts DOM selection changes).
+  const allSelected = () =>
+    content.evaluate((el) => (getSelection()?.toString() ?? '').replace(/\s/g, '') === (el.textContent ?? '').replace(/\s/g, ''));
+  if (!(await allSelected())) {
+    await content.evaluate((el) => {
+      const r = document.createRange();
+      r.selectNodeContents(el);
+      const sel = getSelection()!;
+      sel.removeAllRanges();
+      sel.addRange(r);
+    });
+    await expect.poll(allSelected).toBe(true);
+  }
+  // Type over the selection (no forward-Delete: mobile WebKit emulation mishandles it, and
+  // phone keyboards have no such key).
   await page.keyboard.insertText(code);
   await expect.poll(async () => (await editorText(page)).trim()).toBe(code.trim());
 }

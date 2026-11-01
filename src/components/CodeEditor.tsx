@@ -8,6 +8,14 @@ import { python } from '@codemirror/lang-python';
 import { editorTheme } from './editorTheme';
 import { Icon } from './Icon';
 
+/** Height of a fixed/sticky element if it is currently displayed (0 otherwise). */
+function fixedHeight(selector: string): number {
+  const el = document.querySelector<HTMLElement>(selector);
+  if (!el) return 0;
+  const style = getComputedStyle(el);
+  return style.display === 'none' || (style.position !== 'fixed' && style.position !== 'sticky') ? 0 : el.getBoundingClientRect().height;
+}
+
 interface Props {
   value: string;
   onChange: (value: string) => void;
@@ -62,11 +70,22 @@ export function CodeEditor({ value, onChange, onRun, onSubmit, readOnly = false,
           EditorView.updateListener.of((u) => {
             if (u.docChanged) cb.current.onChange(u.state.doc.toString());
           }),
+          // Keep the caret clear of the sticky top bar and the bottom dock (Run/Submit + tabs).
+          EditorView.scrollMargins.of(() => ({ top: fixedHeight('.topbar') + 8, bottom: fixedHeight('.ws-dock') + 12 })),
         ],
       }),
     });
     view.current = v;
+    // A software keyboard shrinks the (visual) viewport: bring the caret back into view.
+    const onResize = () => {
+      if (!v.hasFocus) return;
+      requestAnimationFrame(() => v.dispatch({ effects: EditorView.scrollIntoView(v.state.selection.main.head, { y: 'nearest' }) }));
+    };
+    window.addEventListener('resize', onResize);
+    window.visualViewport?.addEventListener('resize', onResize);
     return () => {
+      window.removeEventListener('resize', onResize);
+      window.visualViewport?.removeEventListener('resize', onResize);
       v.destroy();
       view.current = null;
     };

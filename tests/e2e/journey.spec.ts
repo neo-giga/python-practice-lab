@@ -33,7 +33,7 @@ async function onboard(page: Page, patterns: string[]) {
   await expect(page.getByRole('heading', { level: 1, name: 'Your plan' })).toBeVisible();
 }
 
-test.describe('Practice journey', () => {
+test.describe('Practice journey @device', () => {
   test('onboarding → plan → Run examples (fail, no solve) → Submit (pass) → progress → reload keeps everything', async ({ page }, info) => {
     const w = watchErrors(page);
     await onboard(page, ['arrays-hashing']);
@@ -199,7 +199,7 @@ test.describe('Practice journey', () => {
   });
 });
 
-test.describe('Problem workspace runtime states', () => {
+test.describe('Problem workspace runtime states @device', () => {
   test('Stop during Submit is not a failed attempt; tab switches never cancel a run; edits mark results stale', async ({ page }, info) => {
     const w = watchErrors(page);
     await page.goto('#/p/two-sum-indexes');

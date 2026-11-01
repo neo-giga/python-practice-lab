@@ -10,6 +10,7 @@ import { sourceHash } from '../lib/hash';
 import { href, navigate, type Route } from '../lib/router';
 import type { RunResult } from '../runtime/runner';
 import { runner, store, useRunnerState } from '../state';
+import { findSnippet } from '../lib/snippets';
 import { py } from '../content/schema';
 
 type PlaygroundRoute = Extract<Route, { page: 'playground' }>;
@@ -62,9 +63,13 @@ interface Saved {
   source: string;
   stdin: string;
   timeoutMs: number;
+  activeSnippet?: string;
 }
 const isSaved = (v: unknown): v is Saved =>
-  typeof v === 'object' && v !== null && typeof (v as Saved).source === 'string' && typeof (v as Saved).stdin === 'string' && typeof (v as Saved).timeoutMs === 'number';
+  typeof v === 'object' && v !== null && typeof (v as Saved).source === 'string' && typeof (v as Saved).stdin === 'string' && typeof (v as Saved).timeoutMs === 'number' && ((v as Saved).activeSnippet === undefined || typeof (v as Saved).activeSnippet === 'string');
+
+interface Previous extends Saved { from: string }
+const isPrevious = (v: unknown): v is Previous => isSaved(v) && typeof (v as Previous).from === 'string';
 
 const TIMEOUTS = [2000, 5000, 10000, 30000];
 
@@ -73,7 +78,12 @@ export function PlaygroundPage({ route }: { route: PlaygroundRoute }) {
   const [source, setSource] = useState(saved.current?.source ?? EXAMPLES[0].code);
   const [stdin, setStdin] = useState(saved.current?.stdin ?? '');
   const [timeoutMs, setTimeoutMs] = useState(TIMEOUTS.includes(saved.current?.timeoutMs ?? 0) ? saved.current!.timeoutMs : 5000);
-  const [previous, setPrevious] = useState<{ source: string; from: string } | null>(null);
+  const [activeSnippet, setActiveSnippet] = useState(saved.current?.activeSnippet);
+  const [previous, setPrevious] = useState<Previous | null>(() => store.read('playground-previous', isPrevious));
+  useEffect(() => {
+    if (previous) store.write('playground-previous', previous);
+    else store.remove('playground-previous');
+  }, [previous]);
   const [live, setLive] = useState<{ stdout: string; stderr: string } | null>(null);
   const [result, setResult] = useState<RunResult | null>(null);
   const [ranHash, setRanHash] = useState<string | null>(null);
@@ -87,8 +97,8 @@ export function PlaygroundPage({ route }: { route: PlaygroundRoute }) {
 
   // Persist (debounced). Storage failures are reported by the store, never thrown.
   // Leaving the page (unmount) or the tab (pagehide) saves the latest values at once.
-  const latest = useRef<Saved>({ source, stdin, timeoutMs });
-  latest.current = { source, stdin, timeoutMs };
+  const latest = useRef<Saved>({ source, stdin, timeoutMs, activeSnippet });
+  latest.current = { source, stdin, timeoutMs, activeSnippet };
   const pending = useRef(false);
   useEffect(() => {
     const flush = () => {
@@ -106,22 +116,33 @@ export function PlaygroundPage({ route }: { route: PlaygroundRoute }) {
     pending.current = true;
     const t = setTimeout(() => {
       pending.current = false;
-      store.write('playground', { source, stdin, timeoutMs } satisfies Saved);
+      store.write('playground', { source, stdin, timeoutMs, activeSnippet } satisfies Saved);
     }, 300);
     return () => clearTimeout(t);
-  }, [source, stdin, timeoutMs]);
+  }, [source, stdin, timeoutMs, activeSnippet]);
 
-  // Open a recipe: keep the user's previous code restorable instead of discarding it.
+  // Open a recipe or reference snippet: keep the user's previous code restorable instead of discarding it.
   useEffect(() => {
-    if (!route.recipe) return;
-    const r = recipeById.get(route.recipe);
+    if (!route.recipe && !route.snippet) {
+      setActiveSnippet(undefined);
+      return;
+    }
+    const r = route.snippet ? findSnippet(route.snippet) : recipeById.get(route.recipe!);
+    // A history entry remembers that its snippet was already loaded. On reload,
+    // resume the saved edits rather than replacing both the draft and its undo.
+    if (route.snippet && r) {
+      if (history.state?.pilSnippet === route.snippet && latest.current.activeSnippet === route.snippet) return;
+      history.replaceState({ ...history.state, pilSnippet: route.snippet }, '');
+    }
+    setActiveSnippet(r && route.snippet ? route.snippet : undefined);
     if (r && r.code !== sourceRef.current) {
-      setPrevious({ source: sourceRef.current, from: r.title });
+      setPrevious({ ...latest.current, source: sourceRef.current, from: r.title });
       setSource(r.code);
       setResult(null);
     }
-    navigate({ page: 'playground' }, true);
-  }, [route.recipe]);
+    // Keep snippet URLs shareable and reloadable; recipes retain their existing behavior.
+    if (!route.snippet) navigate({ page: 'playground' }, true);
+  }, [route.recipe, route.snippet]);
 
   useEffect(
     () =>
@@ -155,16 +176,25 @@ export function PlaygroundPage({ route }: { route: PlaygroundRoute }) {
 
   const loadExample = (id: string) => {
     const ex = EXAMPLES.find((x) => x.id === id);
-    if (!ex || ex.code === source) return;
-    setPrevious({ source, from: ex.title });
+    if (!ex) return;
+    setActiveSnippet(undefined);
+    navigate({ page: 'playground' }, true);
+    if (ex.code === source) return;
+    setPrevious({ source, stdin, timeoutMs, from: ex.title });
     setSource(ex.code);
     setResult(null);
   };
 
   const reset = () => {
-    if (source === EXAMPLES[0].code) return;
+    if (source === EXAMPLES[0].code) {
+      setActiveSnippet(undefined);
+      navigate({ page: 'playground' }, true);
+      return;
+    }
     if (!window.confirm('Replace the playground code with the starting example? You can undo once with "Restore previous code".')) return;
-    setPrevious({ source, from: 'the starting example' });
+    setActiveSnippet(undefined);
+    navigate({ page: 'playground' }, true);
+    setPrevious({ source, stdin, timeoutMs, from: 'the starting example' });
     setSource(EXAMPLES[0].code);
     setResult(null);
   };
@@ -179,6 +209,7 @@ export function PlaygroundPage({ route }: { route: PlaygroundRoute }) {
           <p className="lede">Real CPython in your browser. Each run starts a fresh interpreter in a background worker, so nothing leaks between runs.</p>
         </div>
       </header>
+      {route.snippet && !findSnippet(route.snippet) && <p role="status" className="note">Unknown snippet. Your current code has been kept.</p>}
       {previous && (
         <p className="note" role="status">
           Loaded {previous.from}.{' '}
@@ -186,8 +217,13 @@ export function PlaygroundPage({ route }: { route: PlaygroundRoute }) {
             type="button"
             className="link-btn"
             onClick={() => {
+              setActiveSnippet(undefined);
               setSource(previous.source);
+              setStdin(previous.stdin);
+              setTimeoutMs(previous.timeoutMs);
               setPrevious(null);
+              setResult(null);
+              navigate({ page: 'playground' }, true);
             }}
           >
             Restore previous code

@@ -15,7 +15,7 @@ export type Route =
   | { page: 'problem'; problemId: string }
   | { page: 'fluency'; exerciseId?: string; status?: string; topic?: string }
   | { page: 'learn'; recipeId?: string; topic?: string; q?: string; level?: string }
-  | { page: 'playground'; recipe?: string }
+  | { page: 'playground'; recipe?: string; snippet?: string }
   | { page: 'about' }
   | { page: 'cheatsheet'; q?: string }
   | { page: 'session' }
@@ -104,7 +104,7 @@ export function parseHash(hash: string): Route {
     case 'drill':
       return parts.length === 2 ? { page: 'drill', drillId: parts[1], from: get('from') } : { page: 'notfound', path };
     case 'playground':
-      return parts.length === 1 ? { page: 'playground', recipe: get('recipe') } : { page: 'notfound', path };
+      return parts.length === 1 ? { page: 'playground', recipe: get('recipe'), snippet: get('snippet') } : { page: 'notfound', path };
     case 'practice': {
       // Normally redirected before parsing; parse directly too, so the result is right even without the redirect.
       const to = legacyRedirect(hash);
@@ -154,6 +154,7 @@ export function href(route: Route): string {
     case 'playground':
       path = 'playground';
       add('recipe', route.recipe);
+      add('snippet', route.snippet);
       break;
     case 'about':
       path = 'about';

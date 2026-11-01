@@ -1,10 +1,22 @@
 import { py } from '../schema';
 import type { SkillDrill } from '../drill-schema';
 
+const independentRowsChecker = py`
+  def check(args, result):
+      rows, cols = args
+      want = [[1] * cols if r == 0 else [0] * cols for r in range(rows)]
+      if type(result) is not list or any(type(row) is not list for row in result):
+          return "return a list of lists"
+      if result != want or any(type(v) is not int for row in result for v in row):
+          return f"expected {want!r}"
+      if len({id(row) for row in result}) != len(result):
+          return "some rows are the same list object, so changing one row changes the others"
+`;
+
 export const trapMutabilityDrills: SkillDrill[] = [
   {
     id: "mutable-independent-grid-row",
-    version: 1,
+    version: 2,
     title: "Allocate independent rows",
     skills: ["trap-mutability"],
     kind: "fix",
@@ -38,8 +50,16 @@ export const trapMutabilityDrills: SkillDrill[] = [
                   grid[0][col] = 1
           return grid
     `,
+      // Rebinds row 0 but keeps rows 1.. as one shared list object.
+      py`
+      def mark_first_row(rows: int, cols: int) -> list[list[int]]:
+          grid = [[0] * cols] * rows
+          if rows:
+              grid[0] = [1] * cols
+          return grid
+    `,
     ],
-    grading: {"entry":"mark_first_row","kind":"function","compare":"exact"},
+    grading: {"entry":"mark_first_row","kind":"function","compare":"checker","checker":independentRowsChecker},
     cases: [
       { args: "3, 2", expected: "[[1, 1], [0, 0], [0, 0]]" },
       { args: "0, 2", expected: "[]" },
@@ -127,7 +147,7 @@ export const trapMutabilityDrills: SkillDrill[] = [
   },
   {
     id: "mutable-replace-string-character",
-    version: 1,
+    version: 2,
     title: "Replace an immutable character",
     skills: ["trap-mutability"],
     kind: "write",
@@ -150,6 +170,11 @@ export const trapMutabilityDrills: SkillDrill[] = [
           text[index] = replacement
           return text
     `,
+      // Replaces the first occurrence of the character, which may come before index.
+      py`
+      def replace_character(text: str, index: int, replacement: str) -> str:
+          return text.replace(text[index], replacement, 1)
+    `,
     ],
     grading: {"entry":"replace_character","kind":"function","compare":"exact"},
     cases: [
@@ -157,6 +182,7 @@ export const trapMutabilityDrills: SkillDrill[] = [
       { args: "\"boat\", 3, \"s\"", expected: "'boas'" },
       { args: "\"x\", 0, \"z\"", expected: "'z'" },
       { args: "\"hello\", 2, \"X\"", expected: "'heXlo'" },
+      { args: "\"hello\", 3, \"X\"", expected: "'helXo'" },
     ],
     provenance: 'original',
   },

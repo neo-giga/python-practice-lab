@@ -184,7 +184,7 @@ export const listBasicsDrills: SkillDrill[] = [
           ][k]
     `,
     why: '`append` adds one object, `extend` adds each item of an iterable, `pop(i)` returns what it removes, and `sort()` returns `None`.',
-    hints: ['`append` never splits its argument.', 'In-place methods return `None`.'],
+    hints: ['`append` never splits its argument.', '`append`, `extend` and `sort` return `None`; `pop` returns the removed item.'],
     wrong: [
       // Confuses append with extend, extend with append, and sort with sorted.
       py`

@@ -73,44 +73,8 @@ export const trapNumbersRuntimeDrills: SkillDrill[] = [
     ],
     provenance: 'original',
   },
-  {
-    id: "runtime-iterative-countdown",
-    version: 1,
-    title: "Remove unnecessary recursive depth",
-    skills: ["trap-numbers-runtime"],
-    kind: "fix",
-    prompt: "Return the number of decrements needed to reach zero from nonnegative n. Replace the recursive countdown with a loop so long countdowns do not consume call-stack depth.",
-    signature: "def countdown_steps(n: int) -> int",
-    starter: py`
-      def countdown_steps(n: int) -> int:
-          return 0 if n == 0 else 1 + countdown_steps(n - 1)
-    `,
-    solution: py`
-      def countdown_steps(n: int) -> int:
-          steps = 0
-          while n:
-              n -= 1
-              steps += 1
-          return steps
-    `,
-    why: "Iteration reuses one frame; memoization would not shorten this recursive chain.",
-    hints: ["Keep a step counter and update n in a while loop."],
-    wrong: [
-      // One recursive frame per decrement hits the interpreter recursion limit.
-      py`
-      def countdown_steps(n: int) -> int:
-          return 0 if n == 0 else 1 + countdown_steps(n - 1)
-    `,
-    ],
-    grading: {"entry":"countdown_steps","kind":"function","compare":"exact"},
-    cases: [
-      { args: "0", expected: "0" },
-      { args: "1", expected: "1" },
-      { args: "7", expected: "7" },
-      { args: "5000", expected: "5000" },
-    ],
-    provenance: 'original',
-  },
+  // runtime-iterative-countdown was removed: raising sys.setrecursionlimit lets the recursive starter pass at any
+  // depth a drill can use (10**6 still passes in CPython and Pyodide), so its cases could not require the loop.
   {
     id: "runtime-standard-library-insort",
     version: 1,

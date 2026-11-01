@@ -46,7 +46,7 @@ export const intMathDrills: SkillDrill[] = [
   },
   {
     id: 'reverse-digits-floor',
-    version: 1,
+    version: 2,
     title: 'Fix: reversing digits with the wrong division',
     skills: ['int-math', 'while-loops'],
     kind: 'fix',
@@ -85,6 +85,15 @@ export const intMathDrills: SkillDrill[] = [
                 n = round(n / 10)
             return r
       `,
+      // Truncates the float back to int: an int, but large n loses digits in the float.
+      py`
+        def reverse_digits(n: int) -> int:
+            r = 0
+            while n > 0:
+                r = r * 10 + n % 10
+                n = int(n / 10)
+            return r
+      `,
     ],
     grading: { entry: 'reverse_digits', kind: 'function', compare: 'exact' },
     cases: [
@@ -94,6 +103,7 @@ export const intMathDrills: SkillDrill[] = [
       { args: '1200', expected: '21' },
       { args: '1005', expected: '5001' },
       { args: '86', expected: '68' },
+      { args: '10**17 + 11', expected: '110000000000000001' },
     ],
     provenance: 'original',
   },

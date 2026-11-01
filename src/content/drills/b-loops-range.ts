@@ -45,7 +45,7 @@ export const loopsRangeDrills: SkillDrill[] = [
   },
   {
     id: 'first-drop-index',
-    version: 1,
+    version: 2,
     title: 'Fix: first place the values drop',
     skills: ['loops-range', 'indexing-len'],
     kind: 'fix',
@@ -84,6 +84,14 @@ export const loopsRangeDrills: SkillDrill[] = [
                     return i
             return -1
       `,
+      // Scans backward: returns the last drop, not the first.
+      py`
+        def first_drop(nums: list[int]) -> int:
+            for i in range(len(nums) - 2, -1, -1):
+                if nums[i] > nums[i + 1]:
+                    return i
+            return -1
+      `,
     ],
     grading: { entry: 'first_drop', kind: 'function', compare: 'exact' },
     cases: [
@@ -93,6 +101,7 @@ export const loopsRangeDrills: SkillDrill[] = [
       { args: '[3, 1]', expected: '0' },
       { args: '[1, 2, 5, 4]', expected: '2' },
       { args: '[2, 2, 9, 0, 1]', expected: '2' },
+      { args: '[5, 3, 1]', expected: '0' },
     ],
     provenance: 'original',
   },

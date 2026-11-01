@@ -1,14 +1,31 @@
 import { py } from '../schema';
 import type { SkillDrill } from '../drill-schema';
 
+const realCacheChecker = py`
+  def check(args, result):
+      nums = args[0]
+      if type(result) is not tuple or len(result) != 3:
+          return "return a (results, cache misses, square) tuple"
+      results, misses, square = result
+      if results != [x * x for x in nums]:
+          return f"results should be {[x * x for x in nums]!r}"
+      if type(misses) is not int or misses != len(set(nums)):
+          return f"cache misses should be {len(set(nums))}, one per distinct value"
+      if not callable(getattr(square, "cache_info", None)):
+          return "the third item must be the @cache-decorated square function"
+      info = square.cache_info()
+      if info.misses != len(set(nums)) or info.hits + info.misses != len(nums):
+          return f"square's cache saw {info.hits} hits and {info.misses} misses; call square once per value in nums"
+`;
+
 export const memoCacheDrills: SkillDrill[] = [
   {
     id: "cache-observe-hits",
-    version: 1,
+    version: 2,
     title: "Cache repeated calls",
     skills: ["memo-cache"],
     kind: "write",
-    prompt: "Define a nested @cache function square(x). Call it for every value in nums, then return (results, cache misses). A repeated integer must reuse its cached result.",
+    prompt: "Define a nested @cache function square(x). Call it for every value in nums, then return (results, cache misses, square). A repeated integer must reuse its cached result.",
     signature: "def cached_squares(nums: list[int])",
     starter: py`
       def cached_squares(nums: list[int]):
@@ -21,7 +38,7 @@ export const memoCacheDrills: SkillDrill[] = [
           def square(x):
               return x * x
           results = [square(x) for x in nums]
-          return results, square.cache_info().misses
+          return results, square.cache_info().misses, square
     `,
     why: "cache stores results by arguments, so misses count distinct arguments rather than calls.",
     hints: ["Import cache from functools and place @cache above the nested function."],
@@ -29,15 +46,24 @@ export const memoCacheDrills: SkillDrill[] = [
       // Reports every call as a computation instead of reusing repeated arguments.
       py`
       def cached_squares(nums: list[int]):
-          return [x * x for x in nums], len(nums)
+          def square(x):
+              return x * x
+          return [square(x) for x in nums], len(nums), square
+    `,
+      // No cache at all: counts distinct values by hand instead of observing a cache.
+      py`
+      def cached_squares(nums: list[int]):
+          def square(x):
+              return x * x
+          return [square(x) for x in nums], len(set(nums)), square
     `,
     ],
-    grading: {"entry":"cached_squares","kind":"function","compare":"exact"},
+    grading: {"entry":"cached_squares","kind":"function","compare":"checker","checker":realCacheChecker},
     cases: [
-      { args: "[3, 3, -3, 3]", expected: "([9, 9, 9, 9], 2)" },
-      { args: "[]", expected: "([], 0)" },
-      { args: "[0, 0]", expected: "([0, 0], 1)" },
-      { args: "[1, 2, 4]", expected: "([1, 4, 16], 3)" },
+      { args: "[3, 3, -3, 3]", expected: "([9, 9, 9, 9], 2, 'the @cache function square')" },
+      { args: "[]", expected: "([], 0, 'the @cache function square')" },
+      { args: "[0, 0]", expected: "([0, 0], 1, 'the @cache function square')" },
+      { args: "[1, 2, 4]", expected: "([1, 4, 16], 3, 'the @cache function square')" },
     ],
     provenance: 'original',
   },

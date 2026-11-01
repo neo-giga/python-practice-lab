@@ -4,7 +4,7 @@ import type { SkillDrill } from '../drill-schema';
 export const heapqDrills: SkillDrill[] = [
   {
     id: "heap-pop-minimum",
-    version: 1,
+    version: 2,
     title: "Read the next minimum",
     skills: ["heapq"],
     kind: "write",
@@ -29,13 +29,21 @@ export const heapqDrills: SkillDrill[] = [
       def heap_minimum(nums: list[int]) -> int | None:
           return nums[0] if nums else None
     `,
+      // Heapifies and pops the argument itself instead of a copy.
+      py`
+      def heap_minimum(nums: list[int]) -> int | None:
+          from heapq import heapify, heappop
+          heapify(nums)
+          return heappop(nums) if nums else None
+    `,
     ],
-    grading: {"entry":"heap_minimum","kind":"function","compare":"exact"},
+    grading: {"entry":"heap_minimum","kind":"calls","compare":"exact"},
     cases: [
-      { args: "[8, -2, 5]", expected: "-2" },
-      { args: "[]", expected: "None" },
-      { args: "[0]", expected: "0" },
-      { args: "[6, 6, 1]", expected: "1" },
+      { args: "[([8, -2, 5],)]", expected: "[-2]" },
+      { args: "[([],)]", expected: "[None]" },
+      { args: "[([0],)]", expected: "[0]" },
+      { args: "[([6, 6, 1],)]", expected: "[1]" },
+      { args: "[((nums := [8, -2, 5]),), (nums,)]", expected: "[-2, -2]" },
     ],
     provenance: 'original',
   },

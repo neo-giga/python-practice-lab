@@ -5,7 +5,7 @@ import type { SkillDrill } from '../drill-schema';
 export const whileLoopsDrills: SkillDrill[] = [
   {
     id: 'count-digits-loop',
-    version: 1,
+    version: 2,
     title: 'Count digits with a while loop',
     skills: ['while-loops', 'int-math'],
     kind: 'write',
@@ -44,6 +44,15 @@ export const whileLoopsDrills: SkillDrill[] = [
                 count += 1
             return count
       `,
+      // True division: n becomes a float, and 10**17 - 1 rounds up to 1e17 (one digit too many).
+      py`
+        def digit_count(n: int) -> int:
+            count = 1
+            while n >= 10:
+                n /= 10
+                count += 1
+            return count
+      `,
     ],
     grading: { entry: 'digit_count', kind: 'function', compare: 'exact' },
     cases: [
@@ -53,6 +62,7 @@ export const whileLoopsDrills: SkillDrill[] = [
       { args: '999', expected: '3' },
       { args: '1000', expected: '4' },
       { args: '12345678901234567890', expected: '20' },
+      { args: '10**17 - 1', expected: '17' },
     ],
     provenance: 'original',
   },

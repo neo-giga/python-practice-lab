@@ -1,17 +1,15 @@
-import { lazy, Suspense, useEffect, useRef, useState } from 'react';
+import { lazy, Suspense, useEffect, useRef } from 'react';
 import { codingProblems } from './content/index';
-import { Drawer } from './components/Drawer';
 import { Icon, type IconName } from './components/Icon';
 import { ThemeToggle, useTheme } from './components/ui';
 import { href, setCodingProblemIds, useRoute, type Page, type Route } from './lib/router';
 import { AboutPage } from './pages/About';
 import { LearnPage } from './pages/Learn';
 import { NotFoundPage } from './pages/NotFound';
-import { PlanPage } from './pages/Plan';
+import { CheatsheetPage } from './pages/Cheatsheet';
 import { ProblemsPage } from './pages/Problems';
-import { SetupPage } from './pages/Setup';
-import { TodayPage } from './pages/Today';
-import { runner, usePractice, useStorageWarnings } from './state';
+import { SkillPage, SkillPlanPage, SkillSetup, SkillToday } from './pages/SkillPages';
+import { runner, useStorageWarnings } from './state';
 
 setCodingProblemIds(codingProblems.map((p) => p.id));
 
@@ -19,10 +17,14 @@ setCodingProblemIds(codingProblems.map((p) => p.id));
 const ProblemPage = lazy(() => import('./pages/Problem').then((m) => ({ default: m.ProblemPage })));
 const FluencyPage = lazy(() => import('./pages/Practice').then((m) => ({ default: m.PracticePage })));
 const PlaygroundPage = lazy(() => import('./pages/Playground').then((m) => ({ default: m.PlaygroundPage })));
+const SessionPage = lazy(() => import('./pages/SkillSession').then((m) => ({ default: m.SessionPage })));
+const DrillPage = lazy(() => import('./pages/SkillSession').then((m) => ({ default: m.DrillPage })));
 
 function routeKey(r: Route) {
   if (r.page === 'problem') return `problem:${r.problemId}`;
   if (r.page === 'fluency') return `fluency:${r.exerciseId ?? ''}`;
+  if (r.page === 'drill') return `drill:${r.drillId}`;
+  if (r.page === 'skill') return `skill:${r.skillId}`;
   return r.page;
 }
 
@@ -36,6 +38,10 @@ const TITLES: Record<Page, string> = {
   learn: 'Reference',
   playground: 'Playground',
   about: 'About',
+  cheatsheet: 'Coding interview cheatsheet',
+  session: 'Session',
+  skill: 'Skill',
+  drill: 'Drill',
   notfound: 'Page not found',
 };
 
@@ -47,15 +53,12 @@ interface NavItem {
   also?: Page[];
 }
 const NAV: NavItem[] = [
-  { page: 'today', label: 'Today', icon: 'today', to: { page: 'today' }, also: ['setup'] },
+  { page: 'today', label: 'Today', icon: 'today', to: { page: 'today' }, also: ['setup', 'session'] },
   { page: 'plan', label: 'Plan', icon: 'plan', to: { page: 'plan' } },
-  { page: 'problems', label: 'Problems', icon: 'problems', to: { page: 'problems' }, also: ['problem'] },
-  { page: 'fluency', label: 'Fluency', icon: 'fluency', to: { page: 'fluency' } },
-  { page: 'learn', label: 'Reference', icon: 'reference', to: { page: 'learn' } },
+  { page: 'cheatsheet', label: 'Cheatsheet', icon: 'reference', to: { page: 'cheatsheet' }, also: ['skill', 'drill', 'learn'] },
   { page: 'playground', label: 'Playground', icon: 'playground', to: { page: 'playground' } },
 ];
 const ABOUT: NavItem = { page: 'about', label: 'About', icon: 'about', to: { page: 'about' } };
-const PHONE_PRIMARY: Page[] = ['today', 'plan', 'problems'];
 
 const isActive = (n: NavItem, page: Page) => n.page === page || !!n.also?.includes(page);
 
@@ -69,6 +72,9 @@ function Brand() {
         </svg>
       </span>
       <span className="brand-name">Python Practice Lab</span>
+      <span className="preview-tag" title="Preview: see About for what is in and what is not yet" data-testid="preview-tag">
+        Preview
+      </span>
     </a>
   );
 }
@@ -77,13 +83,15 @@ export function App() {
   const route = useRoute();
   useTheme(); // applies the stored theme on first render
   const [warnings, dismiss] = useStorageWarnings();
-  const [more, setMore] = useState(false);
   const lastKey = useRef(routeKey(route));
+  // Where a problem page's back link returns to: the last page opened before it (e.g. a skill page).
+  const backTo = useRef<Route>({ page: 'cheatsheet' });
   const main = useRef<HTMLElement>(null);
 
   // Leaving a page cancels its run, so a result can never be applied to another problem.
   useEffect(() => {
     const key = routeKey(route);
+    if (route.page !== 'problem') backTo.current = route;
     if (key !== lastKey.current) {
       if (runner.busy) runner.stop('Stopped because you left the page');
       lastKey.current = key;
@@ -111,15 +119,14 @@ export function App() {
   }, [route.page]);
 
   const workspace = route.page === 'problem';
-  const { plan } = usePractice();
-  const inPlan = workspace && !!plan?.weeks.some((w) => w.items.some((i) => i.problemId === (route as { problemId: string }).problemId));
+  const back = backTo.current;
+  const backLabel = back.page === 'skill' || back.page === 'drill' ? 'Skill' : back.page === 'problems' ? 'Problems' : TITLES[back.page];
   const navLink = (n: NavItem, cls: string) => (
     <a key={n.page} href={href(n.to)} className={cls} aria-current={isActive(n, route.page) ? 'page' : undefined} data-testid={`nav-${n.page}`}>
       <Icon name={n.icon} size={20} />
       <span className="nav-label">{n.label}</span>
     </a>
   );
-  const moreActive = !PHONE_PRIMARY.includes(route.page) && !['setup', 'problem'].includes(route.page);
 
   return (
     <div className={`shell${workspace ? ' shell-workspace' : ''}`}>
@@ -139,12 +146,17 @@ export function App() {
       <header className="topbar">
         <Brand />
         {workspace && (
-          <a className="btn btn-quiet ws-back" href={href(inPlan ? { page: 'plan' } : { page: 'problems' })} data-testid="ws-back">
+          <a className="btn btn-quiet ws-back" href={href(back)} data-testid="ws-back">
             <Icon name="chevronLeft" />
-            {inPlan ? 'Plan' : 'Problems'}
+            {backLabel}
           </a>
         )}
-        <ThemeToggle compact />
+        <span className="topbar-actions">
+          <a className="btn btn-quiet btn-icon" href={href(ABOUT.to)} aria-current={route.page === 'about' ? 'page' : undefined} data-testid="topbar-about">
+            <Icon name="about" size={20} label="About" />
+          </a>
+          <ThemeToggle compact />
+        </span>
       </header>
       <div className="frame">
         {warnings.length > 0 && (
@@ -160,15 +172,19 @@ export function App() {
           </div>
         )}
         <main id="main" ref={main} tabIndex={-1}>
-          {route.page === 'today' && <TodayPage />}
-          {route.page === 'setup' && <SetupPage />}
-          {route.page === 'plan' && <PlanPage route={route} />}
+          {route.page === 'today' && <SkillToday />}
+          {route.page === 'setup' && <SkillSetup />}
+          {route.page === 'plan' && <SkillPlanPage />}
+          {route.page === 'cheatsheet' && <CheatsheetPage route={route} />}
+          {route.page === 'skill' && <SkillPage key={route.skillId} id={route.skillId} />}
           {route.page === 'problems' && <ProblemsPage route={route} />}
           {route.page === 'learn' && <LearnPage route={route} />}
           <Suspense fallback={<p className="muted loading">Loading…</p>}>
             {route.page === 'problem' && <ProblemPage key={route.problemId} id={route.problemId} />}
             {route.page === 'fluency' && <FluencyPage route={route} />}
             {route.page === 'playground' && <PlaygroundPage route={route} />}
+            {route.page === 'session' && <SessionPage />}
+            {route.page === 'drill' && <DrillPage key={route.drillId} id={route.drillId} from={route.from} />}
           </Suspense>
           {route.page === 'about' && <AboutPage />}
           {route.page === 'notfound' && <NotFoundPage path={route.path} />}
@@ -183,18 +199,9 @@ export function App() {
       </div>
       {!workspace && (
         <nav className="tabbar" aria-label="Main">
-          {NAV.filter((n) => PHONE_PRIMARY.includes(n.page)).map((n) => navLink(n, 'tab-link'))}
-          <button type="button" className="tab-link" aria-haspopup="dialog" aria-current={moreActive ? 'page' : undefined} onClick={() => setMore(true)} data-testid="nav-more">
-            <Icon name="more" size={20} />
-            <span className="nav-label">More</span>
-          </button>
+          {NAV.map((n) => navLink(n, 'tab-link'))}
         </nav>
       )}
-      <Drawer open={more} onClose={() => setMore(false)} title="More" variant="sheet">
-        <nav aria-label="More sections" className="sheet-nav">
-          {[...NAV.filter((n) => !PHONE_PRIMARY.includes(n.page)), ABOUT].map((n) => navLink(n, 'sheet-link'))}
-        </nav>
-      </Drawer>
     </div>
   );
 }

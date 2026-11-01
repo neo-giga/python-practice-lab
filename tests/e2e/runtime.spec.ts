@@ -136,7 +136,7 @@ test.describe('Playground runtime @runtime', () => {
     // Navigate in the same task that reads storage: the debounced save must not have run yet.
     const before = await page.evaluate((k) => {
       const v = localStorage.getItem(k);
-      location.hash = '#/learn';
+      location.hash = '#/reference';
       return v;
     }, KEY);
     expect(before, 'navigation happened inside the debounce window').toContain('saved before');

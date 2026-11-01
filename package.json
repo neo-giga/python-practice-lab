@@ -21,8 +21,9 @@
     "test:unit": "vitest run --project unit",
     "test:corpus": "vitest run --project corpus",
     "test:portability": "vite-node scripts/export-content.ts && uv run --no-project --python 3.11 python scripts/portability.py build/content.json",
-    "gate": "vite-node scripts/gate-problems.ts --",
+    "gate": "vite-node scripts/gate-content.ts --",
     "catalog": "vite-node scripts/catalog-report.ts --",
+    "skills": "vite-node scripts/skill-report.ts --",
     "test:e2e": "playwright test",
     "check": "npm run typecheck && npm test && npm run build && npm run test:e2e"
   },

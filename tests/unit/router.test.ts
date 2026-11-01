@@ -21,6 +21,16 @@ describe('hash router', () => {
     ];
     for (const r of routes) expect(parseHash(href(r))).toEqual(expect.objectContaining(r));
   });
+  it('drill routes carry the source skill (?from=) and round-trip; absent or unknown from is harmless', () => {
+    const r: Route = { page: 'drill', drillId: 'bfs-hop-distances', from: 'deque' };
+    expect(href(r)).toBe('#/drill/bfs-hop-distances?from=deque');
+    expect(parseHash(href(r))).toEqual(r);
+    expect(href({ page: 'drill', drillId: 'bfs-hop-distances' })).toBe('#/drill/bfs-hop-distances');
+    expect(parseHash('#/drill/bfs-hop-distances')).toEqual({ page: 'drill', drillId: 'bfs-hop-distances', from: undefined });
+    // A bad source skill still parses as the drill (the page falls back to the drill's first skill).
+    expect(parseHash('#/drill/bfs-hop-distances?from=no-such-skill')).toEqual({ page: 'drill', drillId: 'bfs-hop-distances', from: 'no-such-skill' });
+    expect(parseHash('#/drill/bfs-hop-distances?from=')).toEqual({ page: 'drill', drillId: 'bfs-hop-distances', from: undefined });
+  });
   it('the empty route is Today; unknown routes get a recovery page (not Learn)', () => {
     expect(parseHash('').page).toBe('today');
     expect(parseHash('#/').page).toBe('today');

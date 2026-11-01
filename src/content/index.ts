@@ -7,10 +7,18 @@ import { libraryExercises } from './exercises-library';
 import { patternExercises } from './exercises-patterns';
 import type { Exercise, Recipe } from './schema';
 import { codingProblems } from './problems/index';
+import { skillDrills } from './drills/index';
+import { EXERCISE_SKILLS, PATTERN_SKILLS } from './skill-tags';
+import type { CodingProblem } from './problem-schema';
 
-export { topics, codingProblems };
+export { topics, skillDrills };
+/** Coding problems, tagged with skills from their pattern (they are "Apply it" links on skill pages). */
+export const taggedProblems: CodingProblem[] = codingProblems.map((p) => ({ ...p, skills: p.skills ?? PATTERN_SKILLS[p.pattern] }));
+export { taggedProblems as codingProblems };
 export const recipes: Recipe[] = [...syntaxRecipes, ...libraryRecipes, ...patternRecipes];
 /** All 58 drills as they existed before M1 (used for legacy links and backups). */
 export const legacyExercises: Exercise[] = [...syntaxExercises, ...libraryExercises, ...patternExercises];
 /** The Python fluency track: drills that were not upgraded to coding problems. */
-export const exercises: Exercise[] = legacyExercises.filter((e) => !codingProblems.some((p) => p.id === e.id && p.legacy));
+export const exercises: Exercise[] = legacyExercises
+  .filter((e) => !codingProblems.some((p) => p.id === e.id && p.legacy))
+  .map((e) => ({ ...e, skills: e.skills ?? EXERCISE_SKILLS[e.id] }));

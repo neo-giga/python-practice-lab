@@ -44,7 +44,7 @@ test.describe('Drawer focus lifecycle', () => {
 
   test('a pending search write while the Topics drawer is open does not steal focus', async ({ page }) => {
     const w = watchErrors(page);
-    await page.goto('#/learn');
+    await page.goto('#/reference');
     // The search box writes its query to the URL 250 ms after the last keystroke;
     // open the drawer and move focus inside it before that write lands.
     await page.getByTestId('recipe-search').fill('heap');

@@ -1,4 +1,43 @@
-# Authoring coding problems
+# Authoring skill drills and coding problems
+
+The lab's unit of practice is a **Python skill** (syntax or usage you need in coding interviews). Most new content is
+**skill drills**; the M1 coding problems below remain for "Apply it" links.
+
+## Skill drills
+
+- Skills: [`src/content/skills.ts`](../src/content/skills.ts) (ids, tiers, measured frequency). Ids are frozen.
+- Schema: [`src/content/drill-schema.ts`](../src/content/drill-schema.ts) (`SkillDrill`). Gate: [`src/content/drill-gate.ts`](../src/content/drill-gate.ts).
+- Templates: [`src/content/drills/_examples.ts`](../src/content/drills/_examples.ts) ("write it" and "fix it").
+
+**Workflow**
+
+1. Create your own file, e.g. `src/content/drills/b-loops.ts`, exporting one `SkillDrill[]`.
+2. Register it with one line in your section of [`src/content/drills/registry.ts`](../src/content/drills/registry.ts).
+3. `npm run gate -- src/content/drills/b-loops.ts` until it prints `all gates pass`; then
+   `npm run typecheck && npm run test:unit && npm run test:corpus && npm run test:portability`.
+
+**Fields and rules**
+
+| Field | Rule |
+|---|---|
+| `id` | kebab-case, globally unique (recipes, drills and problems share one URL space). |
+| `skills` | 1+ skill ids; the first is the primary skill the drill is counted under. |
+| `kind` | `write` (implement 1–10 lines), `fix` (the starter is the bug), `idiom` (rewrite to the idiomatic form, graded by behaviour), `predict` (return the value a snippet produces). |
+| `prompt` | At most 4 lines and 400 characters. Say exactly what to return. |
+| `signature`, `starter`, `solution` | One function (or class). The starter compiles and **fails** at least one case. The solution is idiomatic Python 3.11+. |
+| `why` | One line: the Python point. |
+| `hints` | 1–3. |
+| `wrong` | ≥ 1 plausible wrong solution, each failing ≥ 1 case; one-line comment above each saying what is wrong. |
+| `cases` | 3–8, distinct `args`, covering the edge the skill is about (empty, zero, negative, off-by-one…). |
+| `grading` | Same modes as problems (table below): usually `{ entry, kind: 'function', compare: 'exact' }`. |
+| `provenance` | `'original'`. Never copy LeetCode text or examples. |
+
+Targets: every skill ≥ 3 drills, Tier 1 ≥ 4, with a mix of kinds. Keep drills fast (the gate allows 2 s for the
+reference). `sortedcontainers` and other third-party packages are not available in Pyodide; use the standard library.
+
+---
+
+## Coding problems (M1)
 
 This is the guide for writing a LeetCode-style problem for the **Coding interview** track. The schema and the grading
 contract are frozen: new fields can only be added as optional, so a problem written against this page keeps working.

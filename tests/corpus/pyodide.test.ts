@@ -6,7 +6,9 @@ import { createRequire } from 'node:module';
 import { dirname } from 'node:path';
 import { beforeAll, describe, expect, it } from 'vitest';
 import { loadPyodide, type PyodideInterface } from 'pyodide';
-import { codingProblems, exercises, recipes } from '../../src/content/index';
+import { codingProblems, exercises, recipes, skillDrills } from '../../src/content/index';
+import { gateDrill } from '../../src/content/drill-gate';
+import { skills } from '../../src/content/skills';
 import { gateProblem } from '../../src/content/problem-gate';
 import { EXPECTED_PYTHON_VERSION, PYODIDE_VERSION } from '../../src/runtime/versions';
 import type { GradeReport, GradeSpec } from '../../src/runtime/protocol';
@@ -77,6 +79,26 @@ describe(`real Pyodide ${PYODIDE_VERSION}`, () => {
     it.each(exercises.flatMap((e) => e.wrong.map((w, i) => [`${e.id}#${i}`, e, w] as const)))('%s', (_id, e, w) => {
       const r = grade(w, e);
       expect(r.passed).toBeLessThan(r.total);
+    });
+  });
+
+  describe('every skill cheatsheet snippet runs cleanly', () => {
+    it.each(skills.map((s) => [s.id, s] as const))('%s', (_id, s) => {
+      const res = runRecipe(s.cheat!.syntax);
+      expect(res.stderr).toBe('');
+      expect(res.ok).toBe(true);
+    });
+  });
+
+  describe('every skill drill passes the drill gate (reference passes, starter and wrong fail)', () => {
+    const gradeSpec = (source: string, spec: GradeSpec): GradeReport => {
+      const fn = py.globals.get('pil_grade');
+      const res = JSON.parse(fn(source, JSON.stringify(spec)));
+      fn.destroy();
+      return res;
+    };
+    it.each(skillDrills.map((d) => [d.id, d] as const))('%s', (_id, d) => {
+      expect(gateDrill(d, gradeSpec).failures).toEqual([]);
     });
   });
 

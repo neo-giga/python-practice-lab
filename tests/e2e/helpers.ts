@@ -1,3 +1,5 @@
+import { execSync } from 'node:child_process';
+import { readFileSync } from 'node:fs';
 import { expect, type Page, type TestInfo } from '@playwright/test';
 
 /** Collect console errors and uncaught page errors; assert none at the end. */
@@ -60,3 +62,25 @@ export async function shot(page: Page, info: TestInfo, name: string) {
 }
 
 export const isNarrow = (info: TestInfo) => (info.project.use.viewport?.width ?? 1440) < 1024;
+
+type ExportedDrill = { id: string; starter: string; solution: string };
+let exported: ExportedDrill[] | null = null;
+/** A drill's starter and reference solution, from the exported curriculum (skill drills in `problems`, fluency drills in `exercises`). */
+export function drillById(id: string): ExportedDrill | undefined {
+  if (!exported) {
+    execSync('npx vite-node scripts/export-content.ts', { stdio: 'ignore' });
+    const c = JSON.parse(readFileSync('build/content.json', 'utf8')) as Record<'problems' | 'exercises', ExportedDrill[]>;
+    exported = [...c.problems, ...c.exercises];
+  }
+  return exported.find((d) => d.id === id);
+}
+
+/** The skills-track setup: build a plan for the Coding interview track at the given minutes per day. */
+export async function onboardSkills(page: Page, minutes: 10 | 20 | 30 = 20) {
+  await page.goto('./');
+  await page.getByTestId('build-plan').click();
+  await expect(page.getByTestId('setup')).toBeVisible();
+  await page.getByTestId('minutes').getByRole('radio', { name: `${minutes} min` }).click();
+  await page.getByTestId('setup-finish').click();
+  await expect(page.getByRole('heading', { level: 1, name: 'Your plan' })).toBeVisible();
+}

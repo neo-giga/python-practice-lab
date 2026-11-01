@@ -1,8 +1,11 @@
-// The M1 journey on the production build with the real Pyodide runtime:
-// onboarding → plan → Today → problem → Run examples (wrong) → Submit (right)
-// → progress → reload; the failed-3x adaptation; Edit plan with a diff.
+// The practice journey on the production build with the real Pyodide runtime. Since the skills
+// correction (spec 2026-10-31-python-practice-lab-skills.md, "Product (decided)" / "Regression 1"),
+// setup, plan and Today serve the skills track; problem pages stay reachable by link (#/p/<id>),
+// e.g. from a skill page's "Apply it" list:
+// onboarding → plan → Today → skill page → problem → Run examples (wrong) → Submit (right)
+// → progress → reload; three failed submits; Edit plan keeps solved work.
 import { expect, test, type Page, type TestInfo } from '@playwright/test';
-import { editorText, expectNoHorizontalOverflow, setEditor, shot, watchErrors } from './helpers';
+import { drillById, editorText, expectNoHorizontalOverflow, onboardSkills, setEditor, shot, watchErrors } from './helpers';
 
 const narrowWs = (info: TestInfo) => (info.project.use.viewport?.width ?? 1440) < 1024;
 
@@ -17,42 +20,27 @@ async function openProblemTab(page: Page, info: TestInfo) {
 const TWO_SUM_RIGHT = 'def pair_indexes(nums, target):\n    seen = {}\n    for j, x in enumerate(nums):\n        if target - x in seen:\n            return [seen[target - x], j]\n        seen[x] = j\n    return []';
 const TWO_SUM_WRONG = 'def pair_indexes(nums, target):\n    return [0, 1]';
 
-async function onboard(page: Page, patterns: string[]) {
-  await page.goto('./');
-  await expect(page.getByRole('heading', { level: 1, name: /Practise coding-interview problems/ })).toBeVisible();
-  await page.getByTestId('build-plan').click();
-  await expect(page.getByRole('heading', { level: 1, name: 'How long until your interviews?' })).toBeVisible();
-  await page.getByRole('button', { name: /^Standard/ }).click(); // preset: 6 weeks x 6 h → jumps to the level question
-  await expect(page.getByRole('heading', { level: 1, name: 'Where are you with these patterns?' })).toBeVisible();
-  await page.getByRole('radio', { name: /^Rusty/ }).click(); // one tap advances
-  await expect(page.getByRole('heading', { level: 1, name: 'Anything to focus on?' })).toBeVisible();
-  await page.getByRole('radio', { name: /^Choose patterns/ }).click();
-  for (const p of patterns) await page.getByTestId(`pattern-${p}`).click();
-  await expect(page.getByTestId('setup-summary')).toContainText('over 6 weeks');
-  await page.getByTestId('setup-finish').click();
-  await expect(page.getByRole('heading', { level: 1, name: 'Your plan' })).toBeVisible();
-}
-
 test.describe('Practice journey @device', () => {
-  test('onboarding → plan → Run examples (fail, no solve) → Submit (pass) → progress → reload keeps everything', async ({ page }, info) => {
+  test('onboarding → plan → skill page → problem: Run examples (fail, no solve) → Submit (pass) → progress → reload keeps everything', async ({ page }, info) => {
     const w = watchErrors(page);
-    await onboard(page, ['arrays-hashing']);
-    // The plan is visible at once, in the URL, and contains only the chosen pattern.
-    await expect(page).toHaveURL(/#\/plan\?w=6&h=6&lvl=rusty&p=arrays-hashing/);
-    await expect(page.getByTestId('plan-week').first()).toContainText('This week');
-    await expect(page.getByTestId('plan-item').first()).toBeVisible();
+    await onboardSkills(page);
+    // The plan is visible at once: sessions, the next one open, with skill rows.
+    await expect(page).toHaveURL(/#\/plan$/);
+    await expect(page.getByTestId('plan-session').first()).toContainText('Next');
+    await expect(page.getByTestId('plan-skill').first()).toBeVisible();
     await expectNoHorizontalOverflow(page);
     await shot(page, info, 'plan');
 
-    // Today: one prominent next problem with its reason.
+    // Today: one prominent next session with its reason.
     await page.goto('#/');
-    await expect(page.getByTestId('next-card')).toContainText('Pair indexes with a value index');
+    await expect(page.getByTestId('next-card')).toContainText('Session 1 of');
     await expect(page.getByTestId('next-why')).toContainText('Why this?');
-    await expect(page.getByTestId('plan-progress')).toHaveText(/^0 of \d+$/);
-    const total = Number((await page.getByTestId('plan-progress').textContent())!.split(' of ')[1]);
+    await expect(page.getByTestId('tier-1')).toContainText(/0\/\d+/);
     await expectNoHorizontalOverflow(page);
     await shot(page, info, 'today');
-    await page.getByTestId('next-problem').click();
+    // A problem is reached from a skill page's "Apply it" list.
+    await page.goto('#/skill/algo-hashmap-counting');
+    await page.getByTestId('apply-links').getByRole('link', { name: 'Pair indexes with a value index' }).click();
     await expect(page).toHaveURL(/#\/p\/two-sum-indexes$/);
     await expect(page.getByRole('heading', { level: 1, name: 'Pair indexes with a value index' })).toBeVisible();
     await expect(page.getByTestId('solve-state')).toHaveText('Not solved');
@@ -84,17 +72,19 @@ test.describe('Practice journey @device', () => {
     await expect(page.getByTestId('solve-state')).toHaveText('Solved');
     await shot(page, info, 'problem-pass');
 
-    // Plan and Today show the progress.
-    await page.goto('#/');
-    // One done; the pass also schedules a review, so the total can grow by one.
-    await expect(page.getByTestId('plan-progress')).toHaveText(new RegExp(`^1 of (${total}|${total + 1})$`));
-    await expect(page.getByTestId('next-card')).not.toContainText('Pair indexes with a value index');
-    await page.goto('#/plan');
-    await expect(page.locator('[data-testid=plan-item][data-lane=new][data-id=two-sum-indexes]')).toHaveAttribute('data-state', 'done');
+    // The problem list shows the progress (problems are no longer part of the skills plan).
+    const solvedRow = page.getByTestId('problem-row').filter({ hasText: 'Pair indexes with a value index' });
+    await page.goto('#/problems?status=solved');
+    await expect(solvedRow).toHaveCount(1);
+    await page.goto('#/problems?status=unsolved');
+    await expect(solvedRow).toHaveCount(0);
 
-    // Reload keeps plan, progress and draft.
+    // Reload keeps the plan, progress and draft.
+    await page.goto('#/problems?status=solved');
     await page.reload();
-    await expect(page.locator('[data-testid=plan-item][data-lane=new][data-id=two-sum-indexes]')).toHaveAttribute('data-state', 'done');
+    await expect(solvedRow).toHaveCount(1);
+    await page.goto('#/plan');
+    await expect(page.getByRole('heading', { level: 1, name: 'Your plan' })).toBeVisible();
     await page.goto('#/p/two-sum-indexes');
     await expect(page.getByTestId('solve-state')).toHaveText('Solved');
     await openCode(page, info);
@@ -102,9 +92,12 @@ test.describe('Practice journey @device', () => {
     expect(w.errors).toEqual([]);
   });
 
-  test('three failed submits, then leaving: an easier sibling comes next with its reason, and the original is re-queued', async ({ page }, info) => {
+  // The M1 plan adaptation (easier sibling, re-queued retry) left with problem-based plans (spec Regression 1);
+  // missed skill drills now return through the review lane (review-completion.spec.ts). The problem page's own
+  // behaviour is unchanged.
+  test('three failed submits, then leaving: the nudge shows and the problem stays unsolved; Today still offers the skills session', async ({ page }, info) => {
     const w = watchErrors(page);
-    await onboard(page, ['arrays-hashing']);
+    await onboardSkills(page);
     await page.goto('#/p/group-anagrams');
     await openCode(page, info);
     await setEditor(page, 'def group_anagrams(words):\n    return [words]');
@@ -118,53 +111,55 @@ test.describe('Practice journey @device', () => {
     await openProblemTab(page, info);
     await expect(page.getByTestId('fail-nudge')).toContainText('3 failed submits');
     await page.goto('#/'); // leave unsolved
-    await expect(page.getByTestId('next-why')).toContainText('Easier sibling of “Group anagrams”');
-    await expect(page.getByTestId('next-card')).toContainText('Pair indexes with a value index');
-    await page.goto('#/plan');
-    await expect(page.locator('[data-testid=plan-item][data-lane=review][data-id=group-anagrams]').filter({ hasText: 'Second try at “Group anagrams”' })).toHaveCount(1);
+    await expect(page.getByTestId('next-card')).toContainText('Session 1 of');
+    await expect(page.getByTestId('next-card')).not.toContainText('Group anagrams');
+    await page.goto('#/problems?status=unsolved');
+    await expect(page.getByTestId('problem-row').filter({ hasText: 'Group anagrams' })).toHaveCount(1);
     expect(w.errors).toEqual([]);
   });
 
-  test('Edit plan shows a diff first and keeps solved work', async ({ page }, info) => {
+  // The skills setup has one choice that changes the plan (minutes per day); the plan is recomputed from it
+  // and from progress, so there is no diff step and nothing to cancel (spec "Product (decided)": one-screen Setup).
+  test('Edit plan keeps solved work and re-packs the sessions', async ({ page }) => {
     const w = watchErrors(page);
-    await onboard(page, ['arrays-hashing']);
-    await page.goto('#/p/two-sum-indexes');
-    await openCode(page, info);
-    await setEditor(page, TWO_SUM_RIGHT);
-    await page.getByTestId('submit').click();
-    await expect(page.getByTestId('run-summary')).toContainText('All 5 cases passed', { timeout: 90_000 });
+    await onboardSkills(page, 20);
+    const sessions20 = await page.getByTestId('plan-session').count();
+    await page.goto('#/session');
+    await page.getByTestId('card-next').click();
+    const drillId = (await page.getByTestId('drill').getAttribute('data-drill-id'))!;
+    await setEditor(page, drillById(drillId)!.solution);
+    await page.getByTestId('run').click();
+    await expect(page.getByTestId('solve-state')).toHaveText('Solved', { timeout: 90_000 });
 
     await page.goto('#/plan');
     await page.getByTestId('edit-plan').click();
-    await expect(page.getByRole('heading', { level: 1, name: 'How long until your interviews?' })).toBeVisible();
-    await page.getByTestId('setup-next').click();
-    await page.getByTestId('setup-next').click();
-    await page.getByTestId('setup-next').click();
-    await expect(page.getByRole('heading', { level: 1, name: 'Anything to focus on?' })).toBeVisible();
-    await expect(page.getByTestId('pattern-arrays-hashing')).toHaveAttribute('aria-pressed', 'true'); // prefilled
-    await page.getByTestId('pattern-two-pointers').click();
+    await expect(page.getByTestId('setup')).toBeVisible();
+    await expect(page.getByTestId('minutes').getByRole('radio', { name: '20 min' })).toHaveAttribute('aria-checked', 'true'); // prefilled
+    await page.getByTestId('minutes').getByRole('radio', { name: '10 min' }).click();
+    await expect(page.getByTestId('setup-finish')).toHaveText('Update my plan');
     await page.getByTestId('setup-finish').click();
-    const diff = page.getByTestId('plan-diff');
-    await expect(diff).toContainText(/\+\d+ Two pointers/);
-    await expect(diff).toContainText('Finished work is kept (1 done problem');
-    // Cancel changes nothing; Apply replaces the future only.
-    await page.getByTestId('cancel-plan').click();
-    await page.getByTestId('setup-finish').click();
-    await page.getByTestId('apply-plan').click();
-    await expect(page).toHaveURL(/p=arrays-hashing%2Ctwo-pointers|p=arrays-hashing,two-pointers/);
-    await expect(page.locator('[data-testid=plan-item][data-lane=new][data-id=two-sum-indexes]')).toHaveAttribute('data-state', 'done');
-    await expect(page.locator('[data-testid=plan-item][data-lane=new][data-id=squares-sorted]')).toHaveCount(1);
+    await expect(page.getByRole('heading', { level: 1, name: 'Your plan' })).toBeVisible();
+    expect(await page.getByTestId('plan-session').count()).toBeGreaterThan(sessions20);
+    await expect(page.locator('[data-testid=plan-skill][data-state=in-progress], [data-testid=plan-skill][data-state=done]').first()).toBeVisible();
+    expect(JSON.parse((await page.evaluate(() => localStorage.getItem('pil:v1:skillPrefs')))!)).toMatchObject({ minutesPerDay: 10 });
+    await page.goto(`#/drill/${drillId}`);
+    await expect(page.getByTestId('solve-state')).toHaveText('Solved');
     expect(w.errors).toEqual([]);
   });
 
-  test('a shared plan link reproduces the plan in a fresh browser', async ({ page }) => {
+  // Shared problem-plan links (#/plan?w=…) belonged to the problem-based plan (spec Regression 1). An old link
+  // still lands on the Plan page; the skills plan is reproducible because it is a pure function of its settings.
+  test('an old shared plan link lands on the Plan page; the same settings reproduce the plan in a fresh browser', async ({ page, browser }) => {
     await page.goto('#/plan?w=2&h=4&lvl=comfortable&p=stack&d=easy%2Cmedium&fw=0&rv=1');
-    await expect(page.getByRole('heading', { level: 1, name: 'Shared plan' })).toBeVisible();
-    await expect(page.getByTestId('linked-plan')).toBeVisible();
-    await expect(page.getByTestId('plan-item').first()).toBeVisible();
-    await page.getByRole('button', { name: 'Start this plan' }).click();
-    await expect(page.getByRole('heading', { level: 1, name: 'Your plan' })).toBeVisible();
-    expect(JSON.parse((await page.evaluate(() => localStorage.getItem('pil:v1:prefs')))!)).toMatchObject({ weeks: 2, hoursPerWeek: 4, level: 'comfortable', patterns: ['stack'] });
+    await expect(page.getByRole('heading', { level: 1, name: 'Plan' })).toBeVisible();
+    await expect(page.getByTestId('build-plan')).toBeVisible();
+    await onboardSkills(page, 10);
+    const order = await page.getByTestId('plan-skill').evaluateAll((els) => els.map((e) => (e as HTMLElement).dataset.id));
+    const fresh = await browser.newPage();
+    await onboardSkills(fresh, 10);
+    expect(await fresh.getByTestId('plan-skill').evaluateAll((els) => els.map((e) => (e as HTMLElement).dataset.id))).toEqual(order);
+    expect(JSON.parse((await fresh.evaluate(() => localStorage.getItem('pil:v1:skillPrefs')))!)).toMatchObject({ track: 'coding-interview', minutesPerDay: 10 });
+    await fresh.close();
   });
 
   test('legacy links, unknown routes and malformed URLs land somewhere useful', async ({ page }) => {
@@ -232,15 +227,20 @@ test.describe('Problem workspace runtime states @device', () => {
 });
 
 test.describe('Onboarding taps and run focus @device', () => {
-  test('tapping an unselected card advances to the next question', async ({ page }) => {
+  // The setup is one screen now (spec "Product (decided)"): one tap on a minutes option updates the summary at once.
+  test('tapping an unselected option updates the setup summary at once', async ({ page }) => {
     await page.goto('#/setup');
-    await page.getByRole('radio', { name: /^8 weeks/ }).click();
-    await expect(page.getByRole('heading', { level: 1, name: 'How many hours a week can you practise?' })).toBeVisible();
-    await page.getByRole('radio', { name: /^4 h/ }).click();
-    await expect(page.getByRole('heading', { level: 1, name: 'Where are you with these patterns?' })).toBeVisible();
-    await page.getByRole('radio', { name: /^New to these patterns/ }).click();
-    await expect(page.getByRole('heading', { level: 1, name: 'Anything to focus on?' })).toBeVisible();
-    await expect(page.getByTestId('setup-summary')).toContainText('over 8 weeks');
+    await expect(page.getByTestId('track-coding-interview')).toHaveAttribute('aria-checked', 'true');
+    await expect(page.getByTestId('track-software-engineer')).toHaveAttribute('aria-disabled', 'true');
+    await expect(page.getByTestId('setup-summary')).toContainText('about 20 minutes');
+    const sessions = async () => Number(await page.getByTestId('setup-summary').locator('strong').textContent());
+    const at20 = await sessions();
+    await page.getByTestId('minutes').getByRole('radio', { name: '10 min' }).click();
+    await expect(page.getByTestId('setup-summary')).toContainText('about 10 minutes');
+    expect(await sessions()).toBeGreaterThan(at20);
+    await page.getByTestId('minutes').getByRole('radio', { name: '30 min' }).click();
+    await expect(page.getByTestId('setup-summary')).toContainText('about 30 minutes');
+    expect(await sessions()).toBeLessThan(at20);
   });
 
   test('focus survives a run: shortcut keeps the editor, a button run returns focus to its button', async ({ page }, info) => {
@@ -291,8 +291,8 @@ test.describe('Runtime download', () => {
   test('nothing from the Python runtime is requested before the first Run', async ({ page }) => {
     const pyodide: string[] = [];
     page.on('request', (r) => r.url().includes('/pyodide/') && pyodide.push(r.url()));
-    await onboard(page, ['stack']);
-    for (const r of ['#/', '#/plan', '#/problems', '#/p/postfix-eval', '#/learn', '#/fluency/first-present', '#/playground']) {
+    await onboardSkills(page);
+    for (const r of ['#/', '#/plan', '#/cheatsheet', '#/skill/heapq', '#/problems', '#/p/postfix-eval', '#/reference', '#/fluency/first-present', '#/playground']) {
       await page.goto(r);
       await page.locator('main h1:visible').first().waitFor();
     }
@@ -307,8 +307,8 @@ test.describe('Runtime download', () => {
 test.describe('Layout', () => {
   test.beforeEach(({}, info) => test.skip(info.project.name !== 'desktop-1440', 'one project resizes through every width'));
   test('no horizontal overflow at 320, 375, 768, 1024 and 1440 on every page', async ({ page }) => {
-    await onboard(page, ['arrays-hashing', 'stack']);
-    const routes = ['#/', '#/setup', '#/plan', '#/problems', '#/p/stretch-hits-target', '#/p/versioned-settings', '#/fluency', '#/fluency/first-present', '#/learn', '#/playground', '#/about', '#/nope'];
+    await onboardSkills(page);
+    const routes = ['#/', '#/setup', '#/plan', '#/cheatsheet', '#/skill/algo-bfs', '#/problems', '#/p/stretch-hits-target', '#/p/versioned-settings', '#/fluency', '#/fluency/first-present', '#/reference', '#/playground', '#/about', '#/nope'];
     for (const width of [320, 375, 768, 1024, 1440]) {
       await page.setViewportSize({ width, height: 900 });
       for (const r of routes) {

@@ -59,6 +59,8 @@ export interface Exercise {
   /** Extra plain-language note on comparison (the policy itself is derived from `grading`). */
   comparison?: string;
   recipeIds: string[];
+  /** Skill ids (src/content/skills.ts) this drill practises; tagged drills are used in skill sessions. */
+  skills?: string[];
 }
 
 /** Dedent a Python block written in a template literal. Raw: backslashes are kept as typed. */

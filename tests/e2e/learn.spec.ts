@@ -1,10 +1,12 @@
 import { expect, test } from '@playwright/test';
 import { expectNoHorizontalOverflow, isNarrow, shot, watchErrors } from './helpers';
 
+// The recipe reference lives at #/reference since the skills correction; bare #/learn opens the Coding interview
+// cheatsheet (spec "Product (decided)": Learn → Cheatsheet), and #/learn/<recipe> deep links still open the reference.
 test.describe('Reference (was Cheatsheet)', () => {
   test('search, level/topic filters, empty state and shareable URLs', async ({ page }, info) => {
     const w = watchErrors(page);
-    await page.goto('#/learn');
+    await page.goto('#/reference');
     await expect(page.getByRole('heading', { level: 1, name: 'Reference' })).toBeVisible();
     await expect(page.getByTestId('result-count')).toHaveText(/Showing all \d+ recipes/);
     const total = await page.getByTestId('recipe').count();
@@ -71,7 +73,7 @@ test.describe('Reference (was Cheatsheet)', () => {
   });
 
   test('skip link moves focus to the main content', async ({ page }) => {
-    await page.goto('#/learn');
+    await page.goto('#/reference');
     await page.keyboard.press('Tab');
     const skip = page.getByRole('link', { name: 'Skip to content' });
     await expect(skip).toBeFocused();
@@ -80,7 +82,7 @@ test.describe('Reference (was Cheatsheet)', () => {
   });
 
   test('Download .md produces the generated cheatsheet', async ({ page }) => {
-    await page.goto('#/learn');
+    await page.goto('#/reference');
     const [download] = await Promise.all([page.waitForEvent('download'), page.getByRole('button', { name: 'Download .md' }).click()]);
     expect(download.suggestedFilename()).toBe('python-interview-lab-cheatsheet.md');
     const path = await download.path();
@@ -91,7 +93,7 @@ test.describe('Reference (was Cheatsheet)', () => {
   });
 
   test('cheatsheet keeps working offline once loaded (no runtime needed to read)', async ({ page, context }) => {
-    await page.goto('#/learn');
+    await page.goto('#/reference');
     await expect(page.getByTestId('recipe').first()).toBeVisible();
     await context.setOffline(true);
     await page.getByTestId('recipe-search').fill('bisect');

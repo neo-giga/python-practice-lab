@@ -7,6 +7,7 @@
 import { isDraft, isProgressState, type Draft, type ProgressState } from './progress';
 import { isAttemptLog, isPlan, isReviewLog, type AttemptLog, type ReviewLog } from './practice';
 import { validatePrefs, type Plan, type Prefs } from './planner';
+import { isSkillPrefs, type SkillPrefs } from './skill-plan';
 import type { SafeStore } from './storage';
 
 export const BACKUP_APP = 'python-interview-lab';
@@ -31,6 +32,8 @@ export interface BackupV2 {
   attempts: AttemptLog;
   /** Review/retry instance activity (added after schema 2 shipped; optional on import). */
   reviews?: ReviewLog;
+  /** Skill-plan preferences (added with the skills track; optional on import). */
+  skillPrefs?: SkillPrefs | null;
 }
 
 export interface StagedImport {
@@ -43,6 +46,7 @@ export interface StagedImport {
   plan?: Plan | null;
   attempts?: AttemptLog;
   reviews?: ReviewLog;
+  skillPrefs?: SkillPrefs | null;
 }
 
 const DRAFT = 'draft:';
@@ -65,6 +69,7 @@ export function buildBackup(store: SafeStore, progress: ProgressState, now: numb
     plan: store.read('plan', isPlan),
     attempts: store.read('attempts', isAttemptLog) ?? { schema: 1, items: [] },
     reviews: store.read('reviews', isReviewLog) ?? { schema: 1, items: {} },
+    skillPrefs: store.read('skillPrefs', isSkillPrefs),
   };
 }
 
@@ -93,7 +98,9 @@ export function stageImport(text: string): StagedImport {
     if (data.plan !== null && data.plan !== undefined && !isPlan(data.plan)) throw new Error('the plan is malformed');
     if (data.attempts !== undefined && !isAttemptLog(data.attempts)) throw new Error('the attempt history is malformed');
     if (data.reviews !== undefined && !isReviewLog(data.reviews)) throw new Error('the review history is malformed');
+    if (data.skillPrefs !== null && data.skillPrefs !== undefined && !isSkillPrefs(data.skillPrefs)) throw new Error('the skill plan preferences are malformed');
     staged.reviews = (data.reviews as ReviewLog | undefined) ?? { schema: 1, items: {} }; // omitted: replace with an empty log
+    if (data.skillPrefs !== undefined) staged.skillPrefs = data.skillPrefs as SkillPrefs | null; // omitted (older backup): keep current
     staged.playground = (data.playground as PlaygroundSaved | null | undefined) ?? null;
     staged.prefs = (data.prefs as Prefs | null | undefined) ?? null;
     staged.plan = (data.plan as Plan | null | undefined) ?? null;
@@ -122,4 +129,8 @@ export function applyImport(store: SafeStore, staged: StagedImport) {
   }
   if (staged.attempts !== undefined) store.write('attempts', staged.attempts);
   if (staged.reviews !== undefined) store.write('reviews', staged.reviews);
+  if (staged.skillPrefs !== undefined) {
+    if (staged.skillPrefs) store.write('skillPrefs', staged.skillPrefs);
+    else store.remove('skillPrefs');
+  }
 }

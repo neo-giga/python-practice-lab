@@ -99,7 +99,7 @@ test.describe('Reference search and navigation', () => {
   // thread (a loaded CI runner) the router can react to a newer navigation later
   // than that timer fires. Injected here: the router's next real hashchange is
   // held for 400 ms, so the pending search write fires while the URL already
-  // points elsewhere. That write must never send the user back to Learn.
+  // points elsewhere. That write must never send the user back to the reference.
   test('a pending search update never overrides a newer navigation', async ({ page }) => {
     const w = watchErrors(page);
     await page.addInitScript(() => {
@@ -120,7 +120,7 @@ test.describe('Reference search and navigation', () => {
         true,
       );
     });
-    await page.goto('#/learn');
+    await page.goto('#/reference');
     await expect(page.getByRole('heading', { level: 1, name: 'Reference' })).toBeVisible();
     await page.getByTestId('recipe-search').fill('deque');
     await page.evaluate(() => {
@@ -133,13 +133,15 @@ test.describe('Reference search and navigation', () => {
   });
 
   test('typing still updates the URL and filters; a deep link still wins', async ({ page }) => {
-    await page.goto('#/learn');
+    await page.goto('#/reference');
     await page.getByTestId('recipe-search').fill('deque');
-    await expect(page).toHaveURL(/#\/learn\?q=deque$/);
+    await expect(page).toHaveURL(/#\/reference\?q=deque$/);
     await expect(page.getByRole('heading', { name: 'deque: O(1) at both ends' })).toBeVisible();
     await expect(page.getByRole('heading', { name: 'Counter: count, compare, most_common' })).toHaveCount(0);
-    await page.goto('#/learn?q=heapq');
+    await page.goto('#/learn?q=heapq'); // an old shared link with a query still opens the reference
     await expect(page.getByTestId('recipe-search')).toHaveValue('heapq');
     await expect(page).toHaveURL(/#\/learn\?q=heapq$/);
+    await page.goto('#/learn'); // bare #/learn is now the Coding interview cheatsheet
+    await expect(page.getByRole('heading', { level: 1, name: 'Coding interview cheatsheet' })).toBeVisible();
   });
 });

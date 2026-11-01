@@ -388,23 +388,38 @@ export function generatePlan(input: GenerateInput): Plan {
     return undefined;
   };
   for (const it of chosenFluency) seq.push(it);
-  for (const w of openWeeks) {
-    while (seq.length && itemCost(seq[0]) <= free(w.index)) {
-      const it = seq.shift()!;
+  // When the pool runs out before the budget does, pace the work evenly over the open weeks
+  // instead of front-loading it (a 12-week plan should not be two full weeks and ten empty ones).
+  const chosenCost = chosenFluency.reduce((t, it) => t + itemCost(it), 0) + chosen.reduce((t, c) => t + c.p.estMinutes * OVERHEAD, 0);
+  const paced = leftInPool === 0 && openWeeks.length > 1;
+  let carried = 0; // minutes placed in earlier open weeks
+  let lastPat: string | undefined; // the interleave rule continues across week boundaries
+  openWeeks.forEach((w, k) => {
+    const isLast = k === openWeeks.length - 1;
+    const dueBy = (chosenCost * (k + 1)) / openWeeks.length; // cumulative pace target
+    let placedHere = 0;
+    // An item fits if the week has room and, when pacing, it is due: it keeps the running
+    // total on pace, or (as the week's first item) at least half of it falls before the pace line.
+    const room = (cost: number) =>
+      cost <= free(w.index) &&
+      (!paced || isLast || carried + placedHere + cost <= dueBy + 1e-9 || (placedHere === 0 && carried + cost / 2 <= dueBy + 1e-9));
+    const place = (it: PlanItem) => {
       w.items.push(it);
       use(w.index, it);
-    }
+      placedHere += itemCost(it);
+      lastPat = byId.get(it.problemId)?.pattern ?? 'fluency';
+    };
+    while (seq.length && room(itemCost(seq[0]))) place(seq.shift()!);
     for (;;) {
-      const prev = lastPattern(w);
-      const fits = rest.filter((c) => c.p.estMinutes * OVERHEAD <= free(w.index));
+      const prev = lastPattern(w) ?? lastPat;
+      const fits = rest.filter((c) => room(c.p.estMinutes * OVERHEAD));
       if (!fits.length) break;
       const pick = fits.find((c) => c.p.pattern !== prev) ?? fits[0];
       rest.splice(rest.indexOf(pick), 1);
-      const it = toItem(pick);
-      w.items.push(it);
-      use(w.index, it);
+      place(toItem(pick));
     }
-  }
+    carried += placedHere;
+  });
   const unplaced = rest.length + seq.length;
 
   // Items within a week: review lane after new work, stable.

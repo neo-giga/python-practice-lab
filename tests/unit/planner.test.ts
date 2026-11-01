@@ -79,6 +79,17 @@ describe('generatePlan: determinism and filters', () => {
     expect(p.shortfall!.poolSize).toBe(2);
     expect(p.shortfall!.freeMinutes).toBeGreaterThan(0);
   });
+  it('paces a short pool over the plan instead of front-loading it', () => {
+    const p = gen({ prefs: prefs({ patterns: ['stack'], difficulties: ['easy', 'medium'], weeks: 4, hoursPerWeek: 8 }) });
+    expect(p.weeks.map((w) => w.items.length)).toEqual([1, 0, 1, 0]);
+    const g = gen({ prefs: prefs({ patterns: ['graphs', 'stack', 'dp-1d'], difficulties: ['easy', 'medium', 'hard'], weeks: 6, hoursPerWeek: 12 }) });
+    const counts = g.weeks.map((w) => w.items.length);
+    expect(counts.reduce((a, b) => a + b)).toBe(8); // every pool item is still scheduled
+    expect(Math.max(...counts) - Math.min(...counts)).toBeLessThanOrEqual(2);
+    // A budget-limited plan (pool not exhausted) still fills weeks to the budget.
+    const full = gen({ prefs: prefs({ weeks: 2, hoursPerWeek: 4 }) });
+    expect(full.weeks.every((w) => w.items.reduce((t, i) => t + itemCost(i), 0) > 4 * 60 - 40)).toBe(true);
+  });
   it('reports selected patterns that have nothing at the chosen difficulty', () => {
     const p = gen({ prefs: prefs({ patterns: ['stack', 'trees'], difficulties: ['hard'] }) });
     expect(p.shortfall!.emptyPatterns.sort()).toEqual(['stack', 'trees']);

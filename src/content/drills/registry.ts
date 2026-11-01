@@ -19,3 +19,8 @@ export { sortingDrills } from './c-sorting';
 export { nodesDrills } from './c-nodes';
 export { typeConversionDrills } from './c-type-conversion';
 export { setsDrills } from './c-sets';
+export { stringsDrills } from './c-strings';
+export { trapMutabilityDrills } from './c-trap-mutability';
+export { trapNumbersRuntimeDrills } from './c-trap-numbers-runtime';
+export { dequeDrills } from './c-deque';
+export { memoCacheDrills } from './c-memo-cache';

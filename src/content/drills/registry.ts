@@ -14,3 +14,8 @@ export { conditionalExprDrills } from './c-conditional-expr';
 export { slicingDrills } from './c-slicing';
 export { membershipDrills } from './c-membership';
 export { dictCounterDrills } from './c-dict-counter';
+export { infinityDrills } from './c-infinity';
+export { sortingDrills } from './c-sorting';
+export { nodesDrills } from './c-nodes';
+export { typeConversionDrills } from './c-type-conversion';
+export { setsDrills } from './c-sets';

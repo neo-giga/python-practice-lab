@@ -382,7 +382,7 @@ export function SkillPage({ id }: { id: string }) {
               <li key={d.id} className="item-row" data-testid="skill-drill">
                 <StatusMark mark={markOf(p, d.id)} />
                 <div className="item-main">
-                  <a className="item-title" href={href({ page: 'drill', drillId: d.id })}>
+                  <a className="item-title" href={href({ page: 'drill', drillId: d.id, from: s.id })}>
                     {d.title}
                   </a>
                   <span className="item-why">{DRILL_KIND_LABEL[d.kind]}</span>

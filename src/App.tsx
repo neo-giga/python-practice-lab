@@ -184,7 +184,7 @@ export function App() {
             {route.page === 'fluency' && <FluencyPage route={route} />}
             {route.page === 'playground' && <PlaygroundPage route={route} />}
             {route.page === 'session' && <SessionPage />}
-            {route.page === 'drill' && <DrillPage key={route.drillId} id={route.drillId} />}
+            {route.page === 'drill' && <DrillPage key={route.drillId} id={route.drillId} from={route.from} />}
           </Suspense>
           {route.page === 'about' && <AboutPage />}
           {route.page === 'notfound' && <NotFoundPage path={route.path} />}

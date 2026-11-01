@@ -92,9 +92,11 @@ export function SessionPage() {
 }
 
 // ------------------------------------------------------------------ Drill page
-export function DrillPage({ id }: { id: string }) {
+export function DrillPage({ id, from }: { id: string; from?: string }) {
   const d = drillById.get(id);
-  const siblings = useMemo(() => (d ? drillsForSkill(d.skills[0]) : []), [d]);
+  // The skill the learner came from (?from=); a skill the drill does not have falls back to its first skill.
+  const skillId = d && from && d.skills.includes(from) ? from : d?.skills[0];
+  const siblings = useMemo(() => (skillId ? drillsForSkill(skillId) : []), [skillId]);
   if (!d) {
     return (
       <div className="page page-narrow">
@@ -109,14 +111,14 @@ export function DrillPage({ id }: { id: string }) {
   const nextDrill = siblings[k + 1];
   return (
     <div className="page page-narrow">
-      <a className="back-link" href={href({ page: 'skill', skillId: d.skills[0] })}>
+      <a className="back-link" href={href({ page: 'skill', skillId: skillId! })}>
         <Icon name="chevronLeft" size={16} />
-        {skillById.get(d.skills[0])?.title}
+        {skillById.get(skillId!)?.title}
       </a>
       <DrillRunner key={d.id} drill={d} />
       {nextDrill && (
         <p className="next-up">
-          <a className="btn btn-secondary" href={href({ page: 'drill', drillId: nextDrill.id })} data-testid="next-drill">
+          <a className="btn btn-secondary" href={href({ page: 'drill', drillId: nextDrill.id, from: skillId })} data-testid="next-drill">
             Next drill: {nextDrill.title}
             <Icon name="arrowRight" />
           </a>
